@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Libellen‑Runner</title>
+  <style>
+    :root {
+      --bg: #0b1623;
+      --hud: #e6f2ff;
+      --accent: #7fd1ff;
+      --accent-2: #a0ffcf;
+      --danger: #ff6b6b;
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 50% 10%, #12263a 0%, var(--bg) 60%);
+      color: var(--hud);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .wrap {
+      width: min(100vw, 1000px);
+      aspect-ratio: 16/9;
+      position: relative;
+      border-radius: 16px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+      overflow: hidden;
+      background: linear-gradient(#93d8ff 0%, #4ab6ff 40%, #2f71a5 41%, #154c77 100%);
+    }
+    canvas { width: 100%; height: 100%; display: block; background: transparent; }
+    .hud {
+      position: absolute; top: 10px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,.45);
+      user-select: none; pointer-events: none;
+    }
+    .tag { padding: 6px 10px; background: rgba(0,0,0,.25); border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+    .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(1000px 400px at 50% 10%, rgba(0,0,0,.15), rgba(0,0,0,.55)); text-align: center; padding: 24px; }
+    .card { background: rgba(255,255,255,.95); border-radius: 16px; padding: 24px 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08); backdrop-filter: blur(6px); max-width: 720px; color: #003b4a; }
+    .powerup-indicator { 
+      position: absolute; 
+      bottom: 10px; 
+      left: 12px; 
+      display: flex; 
+      gap: 10px; 
+    }
+    .powerup-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: bold;
+      color: #00233a;
+      box-shadow: 0 3px 8px rgba(0,0,0,.3);
+      position: relative;
+    }
+    .powerup-timer {
+      position: absolute;
+      bottom: -5px;
+      right: -5px;
+      background: rgba(0,0,0,.5);
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 10px;
+      display: grid;
+      place-items: center;
+    }
+    .shield { background: linear-gradient(180deg, #7fd1ff 0%, #5cc8ff 100%); }
+    .speed { background: linear-gradient(180deg, #ff7f7f 0%, #ff5c5c 100%); }
+    h1 { margin: 0 0 8px 0; font-size: clamp(22px, 2.4vw, 36px); letter-spacing: .5px; }
+    p { margin: 6px 0; opacity: .95; }
+    kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: rgba(0,137,137,.12); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(0,137,137,.25); }
+    .btn { display: inline-block; margin-top: 14px; padding: 10px 16px; border-radius: 999px; font-weight: 700; letter-spacing: .3px; color: white; background: linear-gradient(180deg, #00aaa0 0%, #008989 100%); box-shadow: 0 8px 16px rgba(0,0,0,.25); text-decoration: none; pointer-events: auto; }
+    .btn:active { transform: translateY(1px); }
+    .touch-hint { display: none; }
+    @media (pointer: coarse) { .touch-hint { display: inline; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="game"></canvas>
+    <div class="hud">
+      <div class="tag">Score: <span id="score">0</span></div>
+      <div class="tag">Best: <span id="best">0</span></div>
+      <div class="tag">Speed: <span id="speed">1.0x</span></div>
+    </div>
+    <div class="powerup-indicator" id="powerupIndicator"></div>
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <div style="text-align: center; margin-bottom: 15px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="42" viewBox="0 0 150 52.5" style="margin-bottom: 5px;">
+            <path fill="#008989" d="M54.64,27.4a13.92,13.92,0,0,0-1.12-5.68,13.79,13.79,0,1,0-4.8,15.92,14,14,0,0,0,4.24-4.56A14.49,14.49,0,0,0,54.64,27.4M61,27.4A21,21,0,0,1,32.63,46.23,21,21,0,0,1,32.63,8.57,21,21,0,0,1,61,27.4"/>
+            <path fill="#008989" d="M65.56,42.82H71V24.65h5.4v-4.5H71V13.73H65.56v6.42H62.23v4.5h3.33Z"/>
+            <path fill="#008989" d="M80.82,31.36a11.69,11.69,0,0,0,11.72,12,13.17,13.17,0,0,0,7-1.92V36.75H93.25v4.27a8.41,8.41,0,0,1-1,.31,8.17,8.17,0,0,1-6.43-.87,7.61,7.61,0,0,1-3.49-7.1,7.62,7.62,0,0,1,3.49-7.1,8.16,8.16,0,0,1,6.43-.88,8.34,8.34,0,0,1,1,.32V30H99.5V25.32a13.15,13.15,0,0,0-7-1.92,11.67,11.67,0,0,0-11.72,12"/>
+            <path fill="#008989" d="M101.74,25.6a6.9,6.9,0,0,0,6.59,7.36c3.87,0,6.59-3.3,6.59-7.36s-2.72-7.37-6.59-7.37a6.9,6.9,0,0,0-6.59,7.37m18.61,0c0,6.64-5.37,12-12,12s-12-5.37-12-12,5.37-12,12-12,12,5.37,12,12"/>
+            <path fill="#008989" d="M123.25,34.34h6.25c2.78,0,4-1.12,4-3.25s-1.22-3.24-4-3.24h-6.25Zm0-10.71h5.68c2.29,0,3.61-1,3.61-3s-1.32-3-3.61-3h-5.68Zm-5.18-9.9H130c5.55,0,8.37,3,8.37,6.71A6.37,6.37,0,0,1,134,26.59l0,.05a6.7,6.7,0,0,1,5,6.68c0,4.23-3.08,7.11-8.75,7.11h-12.2Z"/>
+          </svg>
+        </div>
+        <h1>Libellen‑Runner</h1>
+        <p>Fliege als Libelle über den Fluss, weiche Zahlenreihen, Seerosen und Vögeln aus, sammle Mücken‑Orbs für Bonuspunkte.</p>
+        <p><strong>Power-Ups:</strong> 🛡️ Schutzschild · 🔥 Geschwindigkeitsschub · 🧲 Mücken-Magnet</p>
+        <p><strong>Steuerung:</strong> <kbd>Leertaste</kbd> oder <kbd>↑</kbd> Flügelschlag / Sprung · <kbd>P</kbd> Pause · <span class="touch-hint">Tippen für Flügelschlag</span></p>
+        <a href="#" class="btn" id="start">Losfliegen</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('start');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const speedEl = document.getElementById('speed');
+  const powerupIndicatorEl = document.getElementById('powerupIndicator');
+
+  // Powerup Typen
+  const POWERUP_TYPES = {
+    SHIELD: 'shield',
+    SPEED_BOOST: 'speedBoost',
+    MAGNET: 'magnet'
+  };
+
+  // Powerup-Konfiguration
+  const POWERUP_CONFIG = {
+    [POWERUP_TYPES.SHIELD]: {
+      duration: 8,
+      color: 'rgba(127,209,255,0.9)',
+      icon: '🛡️',
+      class: 'shield'
+    },
+    [POWERUP_TYPES.SPEED_BOOST]: {
+      duration: 6,
+      color: 'rgba(255,127,127,0.9)',
+      icon: '🔥',
+      class: 'speed'
+    },
+    [POWERUP_TYPES.MAGNET]: {
+      duration: 10,
+      color: 'rgba(255,200,100,0.9)',
+      icon: '🧲',
+      class: 'magnet'
+    }
+  };
+
+  let DPR = Math.max(1, window.devicePixelRatio || 1);
+  const state = {
+    running: false,
+    paused: false,
+    t: 0,
+    score: 0,
+    best: Number(localStorage.getItem('dragonfly-best') || 0),
+    speed: 1,
+    baseSpeed: 320, // px/s world scroll speed
+    worldOffset: 0,
+    activePowerups: {}, // Aktive Powerups speichern
+  };
+  bestEl.textContent = state.best;
+
+  const world = { w: 960, h: 540, riverY: 0.45 };
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    world.w = Math.floor(rect.width * DPR);
+    world.h = Math.floor(rect.height * DPR);
+    canvas.width = world.w; canvas.height = world.h;
+  }
+  resize(); addEventListener('resize', resize);
+
+  // Input
+  const input = { flap: 0 }; let justFlapped = false;
+  function onPress() { input.flap = 1; justFlapped = true; }
+  function onRelease() { input.flap = 0; }
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); onPress(); }
+    else if (e.code === 'KeyP') togglePause();
+    else if (e.code === 'Enter' && !state.running) start();
+  });
+  addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') onRelease(); });
+  canvas.addEventListener('pointerdown', onPress);
+  addEventListener('pointerup', onRelease);
+  startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
+
+  function togglePause() {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    overlay.style.display = state.paused ? 'grid' : 'none';
+    if (!state.paused) lastTs = performance.now();
+  }
+
+  // Entities
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  const player = { 
+    x: 0, y: 0, vx: 0, vy: 0, 
+    r: 18, g: 1400, flapVel: -520, maxVy: 680, 
+    invuln: 0,
+    hasShield: false, 
+    hasSpeedBoost: false,
+    hasMagnet: false 
+  };
+  const obstacles = []; const pickUps = []; const powerups = []; const clouds = [];
+
+  function reset() {
+    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0;
+    state.activePowerups = {};
+    obstacles.length = 0; pickUps.length = 0; powerups.length = 0;
+    player.x = world.w * 0.22; player.y = world.h * 0.5; 
+    player.vx = 0; player.vy = 0; player.invuln = 0;
+    player.hasShield = false; player.hasSpeedBoost = false; player.hasMagnet = false;
+    spawnTimer = 0; orbTimer = 1.5; powerupTimer = 5;
+    lastObstacleTime = 0;
+    powerupIndicatorEl.innerHTML = '';
+    
+    // Wolken initialisieren
+    clouds.length = 0;
+    initClouds();
+  }
+
+  function initClouds() {
+    // 5-10 zufällige Wolken erstellen
+    const numClouds = 5 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < numClouds; i++) {
+      clouds.push({
+        x: Math.random() * world.w * 1.5, // Über die gesamte Breite + etwas mehr verteilen
+        y: 50 + Math.random() * 120,      // Höhe über den Bergen
+        size: 0.4 + Math.random() * 0.6,  // Zufällige Größe
+        speed: 0.05 + Math.random() * 0.1, // Unterschiedliche Geschwindigkeiten
+        opacity: 0.6 + Math.random() * 0.3 // Unterschiedliche Transparenz
+      });
+    }
+  }
+
+  // Spawning
+  let spawnTimer = 0; let orbTimer = 1.5; let powerupTimer = 5;
+  let lastObstacleTime = 0; // Vermeidung von zu dicht aufeinanderfolgenden Hindernissen
+  function spawnObstacle() {
+    const river = world.h * world.riverY;
+    // 3 Hindernistypen: Zahlenreihen, Seerosen und Vögel
+    const rnd = Math.random();
+    const type = rnd < 0.5 ? 'reed' : (rnd < 0.8 ? 'waterLily' : 'bird');
+    
+    if (type === 'reed') {
+      const gap = rand(180, 240); // Größere Lücke zwischen den Zahlenreihen
+      const center = rand(river - 60, river + 60);
+      const thickness = rand(25, 35); // Breite der Zahlenreihen-Wände
+      obstacles.push({ type: 'reed', x: world.w + 40, width: thickness, gap, center, passed: false });
+    } else if (type === 'waterLily') {
+      // Größenbereich für Seerosen
+      const size = rand(40, 65);
+      const y = river + rand(70, 120);
+      obstacles.push({ type: 'waterLily', x: world.w + 40, y, size, passed: false });
+    } else if (type === 'bird') {
+      // Vögel erscheinen im oberen Bereich
+      const size = rand(28, 40);
+      const y = rand(river - 180, river - 40);
+      // Vögel bewegen sich auch vertikal
+      const vertSpeed = rand(30, 80) * (Math.random() > 0.5 ? 1 : -1);
+      const vertAmp = rand(20, 60);
+      obstacles.push({ 
+        type: 'bird', 
+        x: world.w + 40, 
+        y, 
+        size, 
+        passed: false,
+        vertSpeed,
+        vertAmp,
+        initY: y
+      });
+    }
+  }
+  
+  function spawnOrb() {
+    const river = world.h * world.riverY;
+    const y = rand(river - 110, river + 110);
+    pickUps.push({ x: world.w + 40, y, r: 10, v: 1 });
+  }
+
+  function spawnPowerup() {
+    const river = world.h * world.riverY;
+    const y = rand(river - 140, river - 20); // Powerups erscheinen eher im oberen Bereich
+    
+    // Powerup-Typ zufällig auswählen
+    const types = Object.values(POWERUP_TYPES);
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    powerups.push({ 
+      type,
+      x: world.w + 40, 
+      y, 
+      r: 15
+    });
+  }
+
+  // Rendering helpers
+  function drawBackground() {
+    const w = world.w, h = world.h; const p = state.worldOffset * 0.15; ctx.save();
+    
+    // Himmel - leichter Verlauf
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.36);
+    skyGradient.addColorStop(0, '#a7d8f8');
+    skyGradient.addColorStop(1, '#d7eeff');
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, w, h * 0.36);
+    
+    // Wolken zeichnen
+    for (const cloud of clouds) {
+      drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity);
+    }
+    
+    // Mountains - SWICA Türkistöne
+    for (let i = 0; i < 2; i++) {
+      const baseY = h * (0.36 + i * 0.05);
+      // SWICA Türkistöne
+      ctx.fillStyle = i === 0 ? '#00aaa0' : '#008989';
+      ctx.beginPath();
+      const offset = (p * (i + 1)) % (w);
+      ctx.moveTo(-offset, baseY);
+      for (let x = -offset; x <= w - offset + 200; x += 200) {
+        const peakHeight = 80 + i * 30 + Math.sin((x + i*123) * 0.01) * 20;
+        ctx.lineTo(x + 100, baseY - peakHeight);
+        ctx.lineTo(x + 200, baseY);
+      }
+      ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+    }
+    // River
+    const riverY = h * world.riverY; ctx.fillStyle = '#1a6aa1'; ctx.fillRect(0, riverY, w, h - riverY);
+    ctx.globalAlpha = 0.35; ctx.fillStyle = '#79d3ff';
+    const waveOffset = (state.worldOffset * 0.6) % 40;
+    for (let x = -waveOffset; x < w + 50; x += 40) {
+      ctx.fillRect(x, riverY + 24, 24, 3);
+      ctx.fillRect(x + 10, riverY + 52, 18, 3);
+      ctx.fillRect(x - 6, riverY + 84, 28, 3);
+    }
+    ctx.globalAlpha = 1;
+    // Foreground number sequences (parallax)
+    const reedOffset = (state.worldOffset * 1.2) % 80;
+    for (let x = -reedOffset; x < w + 80; x += 80) drawReedCluster(x, riverY + 6, 1);
+    ctx.restore();
+  }
+  
+  function drawReedCluster(x, baseY, scale) {
+    ctx.save(); ctx.translate(x, baseY); ctx.scale(scale, scale);
+    
+    // Zufällige Zahlenreihen statt Gräser
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    
+    // Für jede "Spalte" im ehemaligen Grascluster
+    for (let i = 0; i < 5; i++) {
+      const h = 50 + i * 8; // Höhe beibehalten für ähnliche Verteilung
+      const column = i * 10; // Horizontale Position mit etwas mehr Abstand
+      
+      // Verwende eine Pseudozufallszahl basierend auf der Position
+      // So bleiben die Zahlen bei jedem Durchlauf gleich
+      const seed = Math.sin(x * 0.1 + i * 0.3) * 10000;
+      
+      // Zeichne 5-8 Zahlen in einer Säule
+      const numDigits = 5 + Math.floor(Math.abs(Math.sin(seed * 0.4)) * 3);
+      for (let j = 0; j < numDigits; j++) {
+        // Pseudozufällige Zahl zwischen 0-9, aber deterministisch pro Position
+        const digit = Math.floor(Math.abs(Math.sin(seed + j * 0.7) * 10)) % 10;
+        
+        // Vertikale Position - besser verteilt von unten nach oben
+        const yPos = -5 - (h * j / (numDigits - 1));
+        
+        // Farben variieren für visuellen Effekt
+        const hue = Math.abs(Math.sin(seed + j * 0.5) * 60) + 140; // Türkis bis Blautöne
+        const lightness = 40 + Math.abs(Math.sin(seed + j * 0.3) * 30);
+        ctx.fillStyle = `hsla(${hue}, 70%, ${lightness}%, 0.85)`;
+        
+        // Zeichne die Zahl
+        ctx.fillText(digit.toString(), column, yPos);
+      }
+    }
+    
+    ctx.restore();
+  }
+  
+  function drawWaterLily(x, y, size) {
+    ctx.save(); 
+    ctx.translate(x, y); 
+    
+    // Schatten unter der Seerose
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 5;
+    ctx.beginPath();
+    ctx.ellipse(0, 5, size*0.9, size*0.3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    
+    // Seerosenblaetter (3-4 Blätter)
+    const numLeaves = 3 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < numLeaves; i++) {
+      const angle = (i / numLeaves) * Math.PI * 2;
+      const leafSize = size * (0.7 + Math.random() * 0.3);
+      
+      ctx.save();
+      ctx.rotate(angle);
+      
+      // Blattform
+      ctx.fillStyle = '#1e8c39';
+      ctx.beginPath();
+      ctx.ellipse(leafSize*0.4, 0, leafSize*0.6, leafSize*0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Blattadern
+      ctx.strokeStyle = '#156626';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(leafSize*0.7, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(leafSize*0.3, -leafSize*0.2);
+      ctx.quadraticCurveTo(leafSize*0.5, 0, leafSize*0.3, leafSize*0.2);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    // Seerose Blüte
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(0, 0, size*0.25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Blütenblätter
+    const numPetals = 8;
+    for (let i = 0; i < numPetals; i++) {
+      const angle = (i / numPetals) * Math.PI * 2;
+      const petalLength = size * 0.25;
+      
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.translate(size*0.2, 0);
+      
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, petalLength, petalLength*0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    // Blütenmitte
+    ctx.fillStyle = '#ffda0d';
+    ctx.beginPath();
+    ctx.arc(0, 0, size*0.12, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+  
+  function drawStone(x, y, size) {
+    // Vergrößere die Steine um 40%
+    size = size * 1.4;
+    
+    ctx.save(); 
+    ctx.translate(x, y); 
+    
+    // Hauptform des Steins
+    ctx.fillStyle = '#5f6d7a';
+    ctx.beginPath(); 
+    ctx.moveTo(-size*0.6, 0);
+    ctx.quadraticCurveTo(-size*0.2, -size*0.6, size*0.5, -size*0.3);
+    ctx.quadraticCurveTo(size*0.7, 0, -size*0.6, 0); 
+    ctx.fill();
+    
+    // Zusätzliche Details für den Stein
+    // Dunkle Konturen für Tiefe
+    ctx.strokeStyle = '#3a424a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-size*0.5, -size*0.1);
+    ctx.lineTo(-size*0.3, -size*0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-size*0.2, -size*0.3);
+    ctx.lineTo(size*0.4, -size*0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(size*0.5, -size*0.3);
+    ctx.lineTo(size*0.7, 0);
+    ctx.stroke();
+    
+    ctx.restore();
+  }
+
+  // Orb zeichnen (Mücken)
+  function drawOrb(o, t) {
+    ctx.save(); 
+    ctx.translate(o.x, o.y + Math.sin(t * 6 + o.x*0.02) * 6);
+    const g = ctx.createRadialGradient(0,0,0,0,0,20);
+    g.addColorStop(0, 'rgba(160,255,207,0.9)'); 
+    g.addColorStop(1, 'rgba(160,255,207,0)');
+    ctx.fillStyle = g; 
+    ctx.beginPath(); 
+    ctx.arc(0,0,18,0,Math.PI*2); 
+    ctx.fill();
+    ctx.fillStyle = '#dfffe0'; 
+    ctx.beginPath(); 
+    ctx.arc(0,0,6,0,Math.PI*2); 
+    ctx.fill(); 
+    ctx.restore();
+  }
+
+  // Vogel als neues Hindernis
+  function drawBird(x, y, size, t) {
+    ctx.save(); 
+    ctx.translate(x, y);
+    
+    // Flügelbewegung
+    const wingFlap = Math.sin(t * 15) * 0.5;
+    
+    // Körper
+    ctx.fillStyle = '#78552b';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Kopf
+    ctx.fillStyle = '#94683a';
+    ctx.beginPath();
+    ctx.arc(size*0.5, -size*0.3, size*0.3, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Schnabel
+    ctx.fillStyle = '#e09f3e';
+    ctx.beginPath();
+    ctx.moveTo(size*0.8, -size*0.3);
+    ctx.lineTo(size*1.2, -size*0.35);
+    ctx.lineTo(size*0.8, -size*0.2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Auge
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(size*0.6, -size*0.35, size*0.08, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Flügel oben
+    ctx.fillStyle = '#8b653d';
+    ctx.save();
+    ctx.translate(0, -size*0.2);
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    
+    // Flügel unten
+    ctx.fillStyle = '#8b653d';
+    ctx.save();
+    ctx.translate(0, size*0.2);
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    
+    // Schwanz
+    ctx.fillStyle = '#94683a';
+    ctx.beginPath();
+    ctx.moveTo(-size*0.6, 0);
+    ctx.lineTo(-size*1.2, -size*0.2);
+    ctx.lineTo(-size*1.2, size*0.2);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
+  // Powerup zeichnen
+  function drawPowerup(p, t) {
+    const config = POWERUP_CONFIG[p.type];
+    const wobble = Math.sin(t * 6 + p.x*0.02) * 6;
+    ctx.save(); 
+    ctx.translate(p.x, p.y + wobble);
+    
+    // Äußere Leuchteffekt
+    const g = ctx.createRadialGradient(0,0,0,0,0,25);
+    g.addColorStop(0, config.color);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0,0,22,0,Math.PI*2);
+    ctx.fill();
+    
+    // Innerer Kern
+    ctx.fillStyle = config.color.replace('0.9', '1');
+    ctx.beginPath();
+    ctx.arc(0,0,10,0,Math.PI*2);
+    ctx.fill();
+    
+    // Glanzeffekt
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(-3,-3,3,0,Math.PI*2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+
+  // Dragonfly with X-shaped wings and head-forward alignment
+  function drawDragonfly(p, t) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    const vx = state.baseSpeed * state.speed; // approximate forward velocity
+    const angle = Math.atan2(p.vy, vx);
+    ctx.rotate(angle);
+
+    const thoraxRadius = 6;
+    const abdomenLen = 46;
+    const headR = 8;
+
+    const flapFore = Math.sin(t * 36) * 0.12;      // front pair
+    const flapHind = Math.sin(t * 36 + 1.2) * 0.12; // rear pair with phase offset
+
+    // Spine
+    ctx.strokeStyle = '#7fe0ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-abdomenLen, 0);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(headR + 6, 0);
+    ctx.stroke();
+
+    // Thorax
+    ctx.fillStyle = '#39d4ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, thoraxRadius + 2, thoraxRadius, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Abdomen segments (tapered)
+    for (let i = 0; i < 7; i++) {
+      const x = -i * (abdomenLen / 7);
+      const w = Math.max(2, 5 - i * 0.6);
+      ctx.fillStyle = i % 2 ? '#1ec4ff' : '#3fd7ff';
+      ctx.fillRect(x - 2, -w, 4, w * 2);
+    }
+
+    // Head (front)
+    ctx.fillStyle = '#a0ffcf';
+    ctx.beginPath(); ctx.arc(headR + 6, 0, headR, 0, Math.PI * 2); ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#003b4a';
+    ctx.beginPath(); ctx.arc(headR + 10, -3, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(headR + 10,  3, 3, 0, Math.PI * 2); ctx.fill();
+
+    // Wings (X-shape)
+    const wingFill = 'rgba(255,255,255,0.5)';
+    const wingStroke = 'rgba(255,255,255,0.85)';
+
+    function wing(angle, len, spread, flap) {
+      ctx.save();
+      ctx.rotate(angle + flap);
+      ctx.fillStyle = wingFill; ctx.strokeStyle = wingStroke; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(len * 0.42, -spread, len, 0);
+      ctx.quadraticCurveTo(len * 0.42,  spread, 0, 0);
+      ctx.fill(); ctx.stroke();
+      // simple veins
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(len * 0.65, 0);
+      ctx.moveTo(len * 0.28, -spread * 0.55); ctx.lineTo(len * 0.6, -spread * 0.15);
+      ctx.moveTo(len * 0.28,  spread * 0.55); ctx.lineTo(len * 0.6,  spread * 0.15);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Forewings (forward-angled: \ /)
+    const foreLen = 58, foreSpread = 12;
+    wing(+Math.PI/4, foreLen, foreSpread,  flapFore);
+    wing(-Math.PI/4, foreLen, foreSpread, -flapFore);
+
+    // Hindwings (backward-angled: / \)
+    const hindLen = 54, hindSpread = 13;
+    wing(Math.PI - Math.PI/4, hindLen, hindSpread,  flapHind);
+    wing(-Math.PI + Math.PI/4, hindLen, hindSpread, -flapHind);
+
+    // Root highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
+    const nx = Math.max(rx, Math.min(cx, rx + rw));
+    const ny = Math.max(ry, Math.min(cy, ry + rh));
+    const dx = cx - nx, dy = cy - ny; return (dx*dx + dy*dy) <= r*r;
+  }
+
+  // Powerup aktivieren
+  function activatePowerup(type) {
+    const config = POWERUP_CONFIG[type];
+    
+    // Wenn dieser Powerup-Typ bereits aktiv ist, Zeit verlängern
+    if (state.activePowerups[type]) {
+      state.activePowerups[type].timeLeft = config.duration;
+      const timerEl = document.querySelector(`#powerup-${type} .powerup-timer`);
+      if (timerEl) timerEl.textContent = Math.ceil(config.duration);
+      return;
+    }
+    
+    // Powerup speichern
+    state.activePowerups[type] = {
+      timeLeft: config.duration,
+      config: config
+    };
+    
+    // Spieler-Status anpassen
+    switch(type) {
+      case POWERUP_TYPES.SHIELD:
+        player.hasShield = true;
+        break;
+      case POWERUP_TYPES.SPEED_BOOST:
+        player.hasSpeedBoost = true;
+        state.baseSpeed *= 1.4; // 40% schneller
+        break;
+      case POWERUP_TYPES.MAGNET:
+        player.hasMagnet = true;
+        break;
+    }
+    
+    // Powerup-Anzeige erstellen
+    const indicatorEl = document.createElement('div');
+    indicatorEl.id = `powerup-${type}`;
+    indicatorEl.className = `powerup-icon ${config.class}`;
+    indicatorEl.innerHTML = `
+      ${config.icon}
+      <div class="powerup-timer">${Math.ceil(config.duration)}</div>
+    `;
+    powerupIndicatorEl.appendChild(indicatorEl);
+  }
+  
+  // Powerup deaktivieren
+  function deactivatePowerup(type) {
+    if (!state.activePowerups[type]) return;
+    
+    // Spieler-Status zurücksetzen
+    switch(type) {
+      case POWERUP_TYPES.SHIELD:
+        player.hasShield = false;
+        player.invuln = 1; // Kurze Unverwundbarkeit nach Shield-Verlust
+        break;
+      case POWERUP_TYPES.SPEED_BOOST:
+        player.hasSpeedBoost = false;
+        state.baseSpeed /= 1.4; // Geschwindigkeit zurücksetzen
+        break;
+      case POWERUP_TYPES.MAGNET:
+        player.hasMagnet = false;
+        break;
+    }
+    
+    // Powerup aus aktivem Status entfernen
+    delete state.activePowerups[type];
+    
+    // UI-Element entfernen
+    const indicatorEl = document.getElementById(`powerup-${type}`);
+    if (indicatorEl) {
+      powerupIndicatorEl.removeChild(indicatorEl);
+    }
+  }
+
+  function start() {
+    overlay.style.display = 'none'; state.running = true; state.paused = false; reset(); lastTs = performance.now(); requestAnimationFrame(loop);
+  }
+  function gameOver() {
+    state.running = false; state.paused = false;
+    if (state.score > state.best) { state.best = state.score; localStorage.setItem('dragonfly-best', String(state.best)); }
+    bestEl.textContent = state.best;
+    overlay.innerHTML = `<div class="card">
+        <div style="text-align: center; margin-bottom: 15px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="120" height="42" viewBox="0 0 150 52.5" style="margin-bottom: 5px;">
+            <path fill="#008989" d="M54.64,27.4a13.92,13.92,0,0,0-1.12-5.68,13.79,13.79,0,1,0-4.8,15.92,14,14,0,0,0,4.24-4.56A14.49,14.49,0,0,0,54.64,27.4M61,27.4A21,21,0,0,1,32.63,46.23,21,21,0,0,1,32.63,8.57,21,21,0,0,1,61,27.4"/>
+            <path fill="#008989" d="M65.56,42.82H71V24.65h5.4v-4.5H71V13.73H65.56v6.42H62.23v4.5h3.33Z"/>
+            <path fill="#008989" d="M80.82,31.36a11.69,11.69,0,0,0,11.72,12,13.17,13.17,0,0,0,7-1.92V36.75H93.25v4.27a8.41,8.41,0,0,1-1,.31,8.17,8.17,0,0,1-6.43-.87,7.61,7.61,0,0,1-3.49-7.1,7.62,7.62,0,0,1,3.49-7.1,8.16,8.16,0,0,1,6.43-.88,8.34,8.34,0,0,1,1,.32V30H99.5V25.32a13.15,13.15,0,0,0-7-1.92,11.67,11.67,0,0,0-11.72,12"/>
+            <path fill="#008989" d="M101.74,25.6a6.9,6.9,0,0,0,6.59,7.36c3.87,0,6.59-3.3,6.59-7.36s-2.72-7.37-6.59-7.37a6.9,6.9,0,0,0-6.59,7.37m18.61,0c0,6.64-5.37,12-12,12s-12-5.37-12-12,5.37-12,12-12,12,5.37,12,12"/>
+            <path fill="#008989" d="M123.25,34.34h6.25c2.78,0,4-1.12,4-3.25s-1.22-3.24-4-3.24h-6.25Zm0-10.71h5.68c2.29,0,3.61-1,3.61-3s-1.32-3-3.61-3h-5.68Zm-5.18-9.9H130c5.55,0,8.37,3,8.37,6.71A6.37,6.37,0,0,1,134,26.59l0,.05a6.7,6.7,0,0,1,5,6.68c0,4.23-3.08,7.11-8.75,7.11h-12.2Z"/>
+          </svg>
+        </div>
+        <h1>Game Over</h1>
+        <p>Score: <strong>${Math.floor(state.score)}</strong> · Best: <strong>${state.best}</strong></p>
+        <p><small>Tipp: kurze, rhythmische Flügelschläge geben dir mehr Kontrolle.</small></p>
+        <a href="#" class="btn" id="restart">Nochmal</a>
+      </div>`;
+    overlay.style.display = 'grid';
+    overlay.querySelector('#restart').addEventListener('click', (e) => { e.preventDefault(); start(); });
+  }
+
+  let lastTs = performance.now();
+  function loop(ts) {
+    if (!state.running) return; const dt = Math.min(0.033, (ts - lastTs) / 1000); lastTs = ts; if (state.paused) { requestAnimationFrame(loop); return; }
+    update(dt); render(); requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    state.t += dt; state.speed = 1 + Math.min(1.2, state.score / 150); speedEl.textContent = `${state.speed.toFixed(1)}x`;
+    const scroll = state.baseSpeed * state.speed * dt; state.worldOffset += scroll;
+
+    if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
+    player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
+    const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
+    if (player.invuln > 0) player.invuln -= dt;
+    
+    // Powerup Timer verarbeiten
+    Object.keys(state.activePowerups).forEach(type => {
+      const powerup = state.activePowerups[type];
+      powerup.timeLeft -= dt;
+      
+      // Powerup-Anzeige aktualisieren
+      const indicatorEl = document.getElementById(`powerup-${type}`);
+      if (indicatorEl) {
+        const timerEl = indicatorEl.querySelector('.powerup-timer');
+        if (timerEl) {
+          timerEl.textContent = Math.ceil(powerup.timeLeft);
+        }
+      }
+      
+      // Powerup beenden, wenn abgelaufen
+      if (powerup.timeLeft <= 0) {
+        deactivatePowerup(type);
+      }
+    });
+    
+
+
+    // Spawn Timer
+    spawnTimer -= dt; 
+    lastObstacleTime += dt;
+    if (spawnTimer <= 0) { 
+      // Mindestens 1,2 Sekunden zwischen Hindernissen (skaliert mit Spielgeschwindigkeit)
+      if (lastObstacleTime >= 1.2 / state.speed) {
+        spawnObstacle(); 
+        lastObstacleTime = 0;
+      }
+      spawnTimer = rand(1.2, 2.0) / state.speed; // Etwas längere Pausen zwischen Hindernissen
+    }
+    orbTimer -= dt; if (orbTimer <= 0) { spawnOrb(); orbTimer = rand(1.5, 3.0) / state.speed; }
+    powerupTimer -= dt; if (powerupTimer <= 0) { spawnPowerup(); powerupTimer = rand(8.0, 15.0); }
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i]; o.x -= scroll;
+      
+      // Spezielle Bewegung für Vögel
+      if (o.type === 'bird') {
+        o.y = o.initY + Math.sin(state.t * o.vertSpeed / 100) * o.vertAmp;
+      }
+      
+      if (o.type === 'reed') {
+        const topH = Math.max(0, o.center - o.gap/2); const bottomY = o.center + o.gap/2;
+        const hitTop = circleRectCollision(player.x, player.y, player.r, o.x, 0, o.width, topH);
+        const hitBottom = circleRectCollision(player.x, player.y, player.r, o.x, bottomY, o.width, world.h - bottomY);
+        if ((hitTop || hitBottom) && player.invuln <= 0) {
+          if (player.hasShield) {
+            deactivatePowerup(POWERUP_TYPES.SHIELD);
+          } else {
+            return gameOver();
+          }
+        }
+        if (!o.passed && o.x + o.width < player.x) { state.score += 1; o.passed = true; }
+      } else if (o.type === 'waterLily') {
+        // Kollisionsbereich für Seerosen
+        const adjustedSize = o.size;
+        if (circleRectCollision(player.x, player.y, player.r, o.x - adjustedSize*0.8, o.y - adjustedSize*0.4, adjustedSize*1.6, adjustedSize*0.8) && player.invuln <= 0) {
+          if (player.hasShield) {
+            deactivatePowerup(POWERUP_TYPES.SHIELD);
+          } else {
+            return gameOver();
+          }
+        }
+        if (!o.passed && o.x < player.x) { state.score += 1; o.passed = true; }
+      } else if (o.type === 'bird') {
+        // Vogel-Kollision prüfen (runde Hitbox)
+        const dist = Math.hypot(player.x - o.x, player.y - o.y);
+        if (dist < player.r + o.size*0.5 && player.invuln <= 0) {
+          if (player.hasShield) {
+            deactivatePowerup(POWERUP_TYPES.SHIELD);
+          } else {
+            return gameOver();
+          }
+        }
+        if (!o.passed && o.x < player.x) { state.score += 1; o.passed = true; }
+      }
+      if (o.x < -200) obstacles.splice(i, 1);
+    }
+
+    for (let i = pickUps.length - 1; i >= 0; i--) {
+      const p = pickUps[i]; 
+      
+      // Magnet zieht Orbs an
+      if (player.hasMagnet) {
+        const dx = player.x - p.x;
+        const dy = player.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 200) {  // Magnet-Reichweite
+          const pullSpeed = 400;  // Anziehungsgeschwindigkeit
+          const moveX = (dx / dist) * pullSpeed * dt;
+          const moveY = (dy / dist) * pullSpeed * dt;
+          p.x += moveX;
+          p.y += moveY;
+        } else {
+          p.x -= scroll * 1.05;
+        }
+      } else {
+        p.x -= scroll * 1.05;
+      }
+      
+      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) { 
+        // Bonus-Punkte bei Speed-Boost
+        const points = player.hasSpeedBoost ? 10 : 5;
+        state.score += points; 
+        player.invuln = 0.6; 
+        pickUps.splice(i, 1); 
+        continue; 
+      }
+      if (p.x < -40) pickUps.splice(i, 1);
+    }
+    
+    // Powerups prüfen
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      const p = powerups[i];
+      p.x -= scroll * 1.05;
+      
+      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) {
+        activatePowerup(p.type);
+        powerups.splice(i, 1);
+        continue;
+      }
+      
+      if (p.x < -40) powerups.splice(i, 1);
+    }
+    
+    scoreEl.textContent = Math.floor(state.score);
+  }
+
+  function render() {
+    ctx.clearRect(0,0,world.w,world.h);
+    drawBackground();
+    
+    const t = state.t;
+    
+    // Hindernisse zeichnen
+    for (const o of obstacles) {
+      if (o.type === 'reed') {
+        ctx.fillStyle = '#2e7d32'; ctx.fillRect(o.x, 0, o.width, Math.max(0, o.center - o.gap/2));
+        ctx.fillStyle = '#4caf50'; ctx.fillRect(o.x, Math.max(0, o.center - o.gap/2) - 10, o.width, 10);
+        const bottomY = o.center + o.gap/2; ctx.fillStyle = '#2e7d32'; ctx.fillRect(o.x, bottomY, o.width, world.h - bottomY);
+        ctx.fillStyle = '#4caf50'; ctx.fillRect(o.x, bottomY, o.width, 10);
+      } else if (o.type === 'waterLily') { 
+        drawWaterLily(o.x, o.y, o.size); 
+      } else if (o.type === 'bird') {
+        drawBird(o.x, o.y, o.size, t);
+      }
+    }
+    
+    // Orbs zeichnen
+    for (const p of pickUps) drawOrb(p, t);
+    
+    // Powerups zeichnen
+    for (const p of powerups) drawPowerup(p, t);
+
+    // Spieler (blink when invulnerable)
+    if (player.invuln > 0) { 
+      if (((t * 20) | 0) % 2 === 0) drawDragonfly(player, t); 
+    }
+    else { 
+      drawDragonfly(player, t); 
+    }
+    
+    // Shield-Effekt um Spieler zeichnen, wenn aktiv
+    if (player.hasShield) {
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      const pulseSize = 1 + Math.sin(t * 5) * 0.1;
+      ctx.scale(pulseSize, pulseSize);
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, player.r + 8, 0, Math.PI*2);
+      
+      const gradient = ctx.createRadialGradient(0, 0, player.r, 0, 0, player.r + 8);
+      gradient.addColorStop(0, 'rgba(127, 209, 255, 0.0)');
+      gradient.addColorStop(0.7, 'rgba(127, 209, 255, 0.3)');
+      gradient.addColorStop(1, 'rgba(127, 209, 255, 0.7)');
+      
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      ctx.strokeStyle = 'rgba(127, 209, 255, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    // Speed-Boost Effekt
+    if (player.hasSpeedBoost) {
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      
+      // Trail hinter der Libelle
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const alpha = 0.7 - i * 0.08;
+        const size = player.r - i * 1.5;
+        const offset = i * 14;
+        
+        ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(-offset, 0, size, 0, Math.PI*2);
+        ctx.fill();
+      }
+      
+      ctx.restore();
+    }
+
+    // Shadow
+    ctx.save(); const sy = world.h * world.riverY + 120; ctx.globalAlpha = 0.20; ctx.fillStyle = '#001b2b'; ctx.beginPath(); ctx.ellipse(player.x + 6, sy, 28, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+  }
+  
+  function drawCloud(x, y, size, opacity) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size, size);
+    
+    // Weichere Wolkenfarbe mit anpassbarer Transparenz
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+    
+    // Hauptkörper der Wolke (mehrere überlappende Kreise für eine weichere Form)
+    ctx.beginPath();
+    ctx.arc(0, 0, 30, 0, Math.PI * 2);
+    ctx.arc(25, -10, 25, 0, Math.PI * 2);
+    ctx.arc(45, 0, 20, 0, Math.PI * 2);
+    ctx.arc(65, -5, 15, 0, Math.PI * 2);
+    ctx.arc(10, 10, 28, 0, Math.PI * 2);
+    ctx.arc(35, 15, 22, 0, Math.PI * 2);
+    ctx.arc(55, 10, 18, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+})();
+</script>
+</body>
+</html>
