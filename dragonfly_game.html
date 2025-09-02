@@ -315,20 +315,34 @@
       drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity);
     }
     
-    // Mountains - SWICA Türkistöne
-    for (let i = 0; i < 2; i++) {
-      const baseY = h * (0.36 + i * 0.05);
-      // SWICA Türkistöne
-      ctx.fillStyle = i === 0 ? '#00aaa0' : '#008989';
-      ctx.beginPath();
-      const offset = (p * (i + 1)) % (w);
-      ctx.moveTo(-offset, baseY);
-      for (let x = -offset; x <= w - offset + 200; x += 200) {
-        const peakHeight = 80 + i * 30 + Math.sin((x + i*123) * 0.01) * 20;
-        ctx.lineTo(x + 100, baseY - peakHeight);
-        ctx.lineTo(x + 200, baseY);
+    if (state.score <= 150) {
+      // Mountains - SWICA Türkistöne
+      for (let i = 0; i < 2; i++) {
+        const baseY = h * (0.36 + i * 0.05);
+        // SWICA Türkistöne
+        ctx.fillStyle = i === 0 ? '#00aaa0' : '#008989';
+        ctx.beginPath();
+        const offset = (p * (i + 1)) % (w);
+        ctx.moveTo(-offset, baseY);
+        for (let x = -offset; x <= w - offset + 200; x += 200) {
+          const peakHeight = 80 + i * 30 + Math.sin((x + i*123) * 0.01) * 20;
+          ctx.lineTo(x + 100, baseY - peakHeight);
+          ctx.lineTo(x + 200, baseY);
+        }
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
       }
-      ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+    } else {
+      // City skyline
+      for (let i = 0; i < 2; i++) {
+        const baseY = h * (0.36 + i * 0.05);
+        ctx.fillStyle = i === 0 ? '#7a8a8f' : '#607074';
+        const offset = (p * (i + 1)) % w;
+        for (let x = -offset; x < w + 120; x += 120) {
+          const bWidth = 60 + i * 20;
+          const bHeight = 80 + i * 40 + Math.sin((x + i * 45) * 0.02) * 20;
+          ctx.fillRect(x, baseY - bHeight, bWidth, bHeight);
+        }
+      }
     }
     // River
     const riverY = h * world.riverY; ctx.fillStyle = '#1a6aa1'; ctx.fillRect(0, riverY, w, h - riverY);
