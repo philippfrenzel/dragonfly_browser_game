@@ -1090,7 +1090,26 @@
     }
 
     // Shadow
-    ctx.save(); const sy = world.h * world.riverY + 120; ctx.globalAlpha = 0.20; ctx.fillStyle = '#001b2b'; ctx.beginPath(); ctx.ellipse(player.x + 6, sy, 28, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    const minY = 30, maxY = world.h - 30;
+    const altitudeFactor = (player.y - minY) / (maxY - minY);
+    const shadowScale = 0.5 + altitudeFactor * (1.5 - 0.5);
+
+    const baseShadowY = world.h * world.riverY + 120;
+    const basePlayerY = world.h * 0.5;
+    const maxShadowY = world.h - 10;
+    let shadowY = baseShadowY;
+    if (player.y > basePlayerY) {
+      const downFactor = (player.y - basePlayerY) / (maxY - basePlayerY);
+      shadowY = baseShadowY + downFactor * (maxShadowY - baseShadowY);
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.20;
+    ctx.fillStyle = '#001b2b';
+    ctx.beginPath();
+    ctx.ellipse(player.x + 6, shadowY, 28 * shadowScale, 6 * shadowScale, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
   }
   
   function drawCloud(x, y, size, opacity) {
