@@ -856,9 +856,11 @@
         <p>Score: <strong>${Math.floor(state.score)}</strong> · Best: <strong>${state.best}</strong></p>
         <p><small>Tipp: kurze, rhythmische Flügelschläge geben dir mehr Kontrolle.</small></p>
         <a href="#" class="btn" id="restart">Nochmal</a>
+        <a href="#" class="btn" id="resetGame" style="margin-left:10px;">Neustart</a>
       </div>`;
     overlay.style.display = 'grid';
     overlay.querySelector('#restart').addEventListener('click', (e) => { e.preventDefault(); start(); });
+    overlay.querySelector('#resetGame').addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
   }
 
   let lastTs = performance.now();
