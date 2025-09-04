@@ -161,7 +161,9 @@
     baseSpeed: 320, // px/s world scroll speed
     worldOffset: 0,
     activePowerups: {}, // Aktive Powerups speichern
-    playerName: ''
+    playerName: '',
+    topDown: false,
+    topDownStartScore: 0
   };
   bestEl.textContent = state.best;
 
@@ -176,15 +178,21 @@
   resize(); addEventListener('resize', resize);
 
   // Input
-  const input = { flap: 0 }; let justFlapped = false;
+  const input = { flap: 0, left: 0, right: 0 }; let justFlapped = false;
   function onPress() { input.flap = 1; justFlapped = true; }
   function onRelease() { input.flap = 0; }
   addEventListener('keydown', (e) => {
-    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); onPress(); }
+    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) { e.preventDefault(); onPress(); }
+    else if (state.topDown && e.code === 'ArrowLeft') { e.preventDefault(); input.left = 1; }
+    else if (state.topDown && e.code === 'ArrowRight') { e.preventDefault(); input.right = 1; }
     else if (e.code === 'KeyP') togglePause();
     else if (e.code === 'Enter' && !state.running) start();
   });
-  addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') onRelease(); });
+  addEventListener('keyup', (e) => {
+    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) onRelease();
+    else if (state.topDown && e.code === 'ArrowLeft') { input.left = 0; }
+    else if (state.topDown && e.code === 'ArrowRight') { input.right = 0; }
+  });
   canvas.addEventListener('pointerdown', onPress);
   addEventListener('pointerup', onRelease);
   startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
@@ -209,8 +217,9 @@
   const obstacles = []; const pickUps = []; const powerups = []; const clouds = [];
 
   function reset() {
-    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0;
+    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0; state.topDown = false; state.baseSpeed = 320; state.topDownStartScore = 0;
     state.activePowerups = {};
+    speedEl.textContent = '1.0x';
     obstacles.length = 0; pickUps.length = 0; powerups.length = 0;
     player.x = world.w * 0.22; player.y = world.h * 0.5; 
     player.vx = 0; player.vy = 0; player.invuln = 0;
@@ -306,20 +315,25 @@
 
   // Rendering helpers
   function drawBackground() {
+    if (state.topDown) {
+      drawBackgroundTopDown();
+      return;
+    }
+
     const w = world.w, h = world.h; const p = state.worldOffset * 0.15; ctx.save();
-    
+
     // Himmel - leichter Verlauf
     const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.36);
     skyGradient.addColorStop(0, '#a7d8f8');
     skyGradient.addColorStop(1, '#d7eeff');
     ctx.fillStyle = skyGradient;
     ctx.fillRect(0, 0, w, h * 0.36);
-    
+
     // Wolken zeichnen
     for (const cloud of clouds) {
       drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity);
     }
-    
+
     if (state.score < 150) {
       // Mountains - SWICA Türkistöne
       for (let i = 0; i < 2; i++) {
@@ -385,6 +399,18 @@
     const reedOffset = (state.worldOffset * 1.2) % 80;
     for (let x = -reedOffset; x < w + 80; x += 80) drawReedCluster(x, riverY + 6, 1);
     ctx.restore();
+  }
+
+  function drawBackgroundTopDown() {
+    const w = world.w, h = world.h;
+    if (state.score < 150) {
+      ctx.fillStyle = '#1a6aa1';
+    } else if (state.score < 250) {
+      ctx.fillStyle = '#7a8a8f';
+    } else {
+      ctx.fillStyle = '#edc76c';
+    }
+    ctx.fillRect(0, 0, w, h);
   }
 
   function drawCactus(x, baseY, scale) {
@@ -490,7 +516,19 @@
   function drawWaterLily(x, y, size) {
     ctx.save();
     ctx.translate(x, y);
-    
+
+    if (state.score < 150) {
+      drawWaterLilyShape(size);
+    } else if (state.score < 250) {
+      if (state.topDown) drawScooterTop(size); else drawScooter(size);
+    } else {
+      if (state.topDown) drawLionTop(size); else drawLion(size);
+    }
+
+    ctx.restore();
+  }
+
+  function drawWaterLilyShape(size) {
     // Schatten unter der Seerose
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 10;
@@ -500,22 +538,22 @@
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fill();
     ctx.shadowColor = 'transparent';
-    
+
     // Seerosenblaetter (3-4 Blätter)
     const numLeaves = 3 + Math.floor(Math.random() * 2);
     for (let i = 0; i < numLeaves; i++) {
       const angle = (i / numLeaves) * Math.PI * 2;
       const leafSize = size * (0.7 + Math.random() * 0.3);
-      
+
       ctx.save();
       ctx.rotate(angle);
-      
+
       // Blattform
       ctx.fillStyle = '#1e8c39';
       ctx.beginPath();
       ctx.ellipse(leafSize*0.4, 0, leafSize*0.6, leafSize*0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Blattadern
       ctx.strokeStyle = '#156626';
       ctx.lineWidth = 1;
@@ -527,40 +565,166 @@
       ctx.moveTo(leafSize*0.3, -leafSize*0.2);
       ctx.quadraticCurveTo(leafSize*0.5, 0, leafSize*0.3, leafSize*0.2);
       ctx.stroke();
-      
+
       ctx.restore();
     }
-    
+
     // Seerose Blüte
     ctx.fillStyle = 'white';
     ctx.beginPath();
     ctx.arc(0, 0, size*0.25, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // Blütenblätter
     const numPetals = 8;
     for (let i = 0; i < numPetals; i++) {
       const angle = (i / numPetals) * Math.PI * 2;
       const petalLength = size * 0.25;
-      
+
       ctx.save();
       ctx.rotate(angle);
       ctx.translate(size*0.2, 0);
-      
+
       ctx.fillStyle = 'white';
       ctx.beginPath();
       ctx.ellipse(0, 0, petalLength, petalLength*0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      
+
       ctx.restore();
     }
-    
+
     // Blütenmitte
     ctx.fillStyle = '#ffda0d';
     ctx.beginPath();
     ctx.arc(0, 0, size*0.12, 0, Math.PI * 2);
     ctx.fill();
-    
+  }
+
+  function drawScooter(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // Räder
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.arc(-20, 20, 10, 0, Math.PI*2);
+    ctx.arc(20, 20, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    // Trittbrett
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-25, 10, 50, 6);
+
+    // Lenkerstange
+    ctx.fillStyle = '#555';
+    ctx.fillRect(0, -40, 4, 50);
+
+    // Lenker
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-8, -44, 20, 4);
+
+    ctx.restore();
+  }
+
+  function drawLion(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // Körper
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.ellipse(0, 10, 30, 18, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Mähne
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, -20, 25, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kopf
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.arc(0, -20, 15, 0, Math.PI*2);
+    ctx.fill();
+
+    // Gesicht
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(-5, -22, 2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(5, -22, 2, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, -17, 3, 0, Math.PI*2);
+    ctx.fill();
+
+    // Beine
+    ctx.fillStyle = '#d8a81f';
+    ctx.fillRect(-20, 20, 8, 15);
+    ctx.fillRect(12, 20, 8, 15);
+
+    // Schwanz
+    ctx.strokeStyle = '#d8a81f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(30, 10);
+    ctx.quadraticCurveTo(40, 0, 45, 15);
+    ctx.stroke();
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(45, 15, 5, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawScooterTop(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-25, -5, 50, 10);
+
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.arc(-20, 0, 8, 0, Math.PI * 2);
+    ctx.arc(20, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-2, -40, 4, 35);
+    ctx.fillRect(-10, -40, 20, 4);
+    ctx.restore();
+  }
+
+  function drawLionTop(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, 0, 30, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(-8, -5, 3, 0, Math.PI * 2);
+    ctx.arc(8, -5, 3, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
   
@@ -625,24 +789,40 @@
 
   // Vogel als neues Hindernis
   function drawBird(x, y, size, t) {
-    ctx.save(); 
+    ctx.save();
     ctx.translate(x, y);
-    
-    // Flügelbewegung
+
     const wingFlap = Math.sin(t * 15) * 0.5;
-    
+    if (state.topDown) {
+      if (state.score >= 150 && state.score < 250) {
+        drawSeagullTop(size, wingFlap);
+      } else {
+        drawDefaultBirdTop(size, wingFlap);
+      }
+    } else {
+      if (state.score >= 150 && state.score < 250) {
+        drawSeagullBody(size, wingFlap);
+      } else {
+        drawDefaultBirdBody(size, wingFlap);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function drawDefaultBirdBody(size, wingFlap) {
     // Körper
     ctx.fillStyle = '#78552b';
     ctx.beginPath();
     ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Kopf
     ctx.fillStyle = '#94683a';
     ctx.beginPath();
     ctx.arc(size*0.5, -size*0.3, size*0.3, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Schnabel
     ctx.fillStyle = '#e09f3e';
     ctx.beginPath();
@@ -651,13 +831,13 @@
     ctx.lineTo(size*0.8, -size*0.2);
     ctx.closePath();
     ctx.fill();
-    
+
     // Auge
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(size*0.6, -size*0.35, size*0.08, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Flügel oben
     ctx.fillStyle = '#8b653d';
     ctx.save();
@@ -667,7 +847,7 @@
     ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
-    
+
     // Flügel unten
     ctx.fillStyle = '#8b653d';
     ctx.save();
@@ -677,7 +857,7 @@
     ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
-    
+
     // Schwanz
     ctx.fillStyle = '#94683a';
     ctx.beginPath();
@@ -686,8 +866,118 @@
     ctx.lineTo(-size*1.2, size*0.2);
     ctx.closePath();
     ctx.fill();
-    
+  }
+
+  function drawSeagullBody(size, wingFlap) {
+    // Körper
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kopf
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.arc(size*0.5, -size*0.3, size*0.25, 0, Math.PI*2);
+    ctx.fill();
+
+    // Schnabel
+    ctx.fillStyle = '#ffce00';
+    ctx.beginPath();
+    ctx.moveTo(size*0.7, -size*0.3);
+    ctx.lineTo(size*1.1, -size*0.28);
+    ctx.lineTo(size*0.7, -size*0.22);
+    ctx.closePath();
+    ctx.fill();
+
+    // Auge
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(size*0.55, -size*0.35, size*0.07, 0, Math.PI*2);
+    ctx.fill();
+
+    // Flügel oben
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.translate(0, -size*0.1);
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
     ctx.restore();
+
+    // Flügel unten
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.translate(0, size*0.1);
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Schwanz
+    ctx.fillStyle = '#d0d0d0';
+    ctx.beginPath();
+    ctx.moveTo(-size*0.6, 0);
+    ctx.lineTo(-size*1.0, -size*0.2);
+    ctx.lineTo(-size*1.0, size*0.2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawDefaultBirdTop(size, wingFlap) {
+    ctx.fillStyle = '#94683a';
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#8b653d';
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#e09f3e';
+    ctx.beginPath();
+    ctx.arc(0, -size * 0.7, size * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawSeagullTop(size, wingFlap) {
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffce00';
+    ctx.beginPath();
+    ctx.arc(0, -size * 0.7, size * 0.18, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // Powerup zeichnen
@@ -812,6 +1102,50 @@
     ctx.restore();
   }
 
+  function drawDragonflyTop(p, t) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    const wingFlap = Math.sin(t * 30) * 0.25;
+
+    // Body
+    ctx.fillStyle = '#39d4ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#a0ffcf';
+    ctx.beginPath();
+    ctx.arc(0, -14, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wings
+    const wingFill = 'rgba(255,255,255,0.5)';
+    const wingStroke = 'rgba(255,255,255,0.85)';
+    ctx.fillStyle = wingFill;
+    ctx.strokeStyle = wingStroke;
+    ctx.lineWidth = 1;
+
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
   function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
     const nx = Math.max(rx, Math.min(cx, rx + rw));
     const ny = Math.max(ry, Math.min(cy, ry + rh));
@@ -923,12 +1257,30 @@
   }
 
   function update(dt) {
-    state.t += dt; state.speed = 1 + Math.min(1.2, state.score / 150); speedEl.textContent = `${state.speed.toFixed(1)}x`;
+    state.t += dt;
+    if (!state.topDown && state.score >= 400) {
+      state.topDown = true;
+      state.baseSpeed = 320;
+      state.topDownStartScore = state.score;
+    }
+    const progressScore = state.topDown ? state.score - state.topDownStartScore : state.score;
+    state.speed = 1 + Math.min(1.2, Math.max(0, progressScore) / 150);
+    speedEl.textContent = `${state.speed.toFixed(1)}x`;
     const scroll = state.baseSpeed * state.speed * dt; state.worldOffset += scroll;
 
-    if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
-    player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
-    const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
+    if (state.topDown) {
+      const move = 360 * dt;
+      if (input.left) player.y -= move;
+      if (input.right) player.y += move;
+      const minY = 30, maxY = world.h - 30;
+      if (player.y < minY) player.y = minY;
+      if (player.y > maxY) player.y = maxY;
+      player.vy = 0;
+    } else {
+      if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
+      player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
+      const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
+    }
     if (player.invuln > 0) player.invuln -= dt;
     
     // Powerup Timer verarbeiten
@@ -1064,8 +1416,9 @@
 
   function render() {
     ctx.clearRect(0,0,world.w,world.h);
+    ctx.save();
     drawBackground();
-    
+
     const t = state.t;
     
     // Hindernisse zeichnen
@@ -1100,11 +1453,13 @@
     for (const p of powerups) drawPowerup(p, t);
 
     // Spieler (blink when invulnerable)
-    if (player.invuln > 0) { 
-      if (((t * 20) | 0) % 2 === 0) drawDragonfly(player, t); 
+    if (player.invuln > 0) {
+      if (((t * 20) | 0) % 2 === 0) {
+        state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
+      }
     }
-    else { 
-      drawDragonfly(player, t); 
+    else {
+      state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
     }
     
     // Shield-Effekt um Spieler zeichnen, wenn aktiv
@@ -1173,6 +1528,7 @@
     ctx.beginPath();
     ctx.ellipse(player.x + 6, shadowY, 28 * shadowScale, 6 * shadowScale, 0, 0, Math.PI*2);
     ctx.fill();
+    ctx.restore();
     ctx.restore();
   }
   
