@@ -280,7 +280,12 @@
   function spawnOrb() {
     const river = world.h * world.riverY;
     const y = rand(river - 110, river + 110);
-    pickUps.push({ x: world.w + 40, y, r: 10, v: 1 });
+    const rnd = Math.random();
+    let type, value;
+    if (rnd < 0.6) { type = 'bronze'; value = 5; }
+    else if (rnd < 0.9) { type = 'silver'; value = 10; }
+    else { type = 'gold'; value = 40; }
+    pickUps.push({ x: world.w + 40, y, r: 10, type, value });
   }
 
   function spawnPowerup() {
@@ -596,19 +601,25 @@
 
   // Orb zeichnen (Mücken)
   function drawOrb(o, t) {
-    ctx.save(); 
+    ctx.save();
     ctx.translate(o.x, o.y + Math.sin(t * 6 + o.x*0.02) * 6);
+    const colors = {
+      bronze: { inner: 'rgba(205,127,50,0.9)', outer: 'rgba(205,127,50,0)', core: '#ffe0b2' },
+      silver: { inner: 'rgba(192,192,192,0.9)', outer: 'rgba(192,192,192,0)', core: '#f2f2f2' },
+      gold:   { inner: 'rgba(255,215,0,0.9)',   outer: 'rgba(255,215,0,0)',   core: '#fff5b5' }
+    };
+    const c = colors[o.type] || colors.bronze;
     const g = ctx.createRadialGradient(0,0,0,0,0,20);
-    g.addColorStop(0, 'rgba(160,255,207,0.9)'); 
-    g.addColorStop(1, 'rgba(160,255,207,0)');
-    ctx.fillStyle = g; 
-    ctx.beginPath(); 
-    ctx.arc(0,0,18,0,Math.PI*2); 
+    g.addColorStop(0, c.inner);
+    g.addColorStop(1, c.outer);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0,0,18,0,Math.PI*2);
     ctx.fill();
-    ctx.fillStyle = '#dfffe0'; 
-    ctx.beginPath(); 
-    ctx.arc(0,0,6,0,Math.PI*2); 
-    ctx.fill(); 
+    ctx.fillStyle = c.core;
+    ctx.beginPath();
+    ctx.arc(0,0,6,0,Math.PI*2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -1023,13 +1034,13 @@
         p.x -= scroll * 1.05;
       }
       
-      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) { 
-        // Bonus-Punkte bei Speed-Boost
-        const points = player.hasSpeedBoost ? 10 : 5;
-        state.score += points; 
-        player.invuln = 0.6; 
-        pickUps.splice(i, 1); 
-        continue; 
+      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) {
+        const basePoints = p.value;
+        const points = player.hasSpeedBoost ? basePoints * 2 : basePoints;
+        state.score += points;
+        player.invuln = 0.6;
+        pickUps.splice(i, 1);
+        continue;
       }
       if (p.x < -40) pickUps.splice(i, 1);
     }
