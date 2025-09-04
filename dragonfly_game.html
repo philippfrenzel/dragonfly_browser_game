@@ -403,14 +403,32 @@
 
   function drawBackgroundTopDown() {
     const w = world.w, h = world.h;
-    if (state.score < 150) {
-      ctx.fillStyle = '#1a6aa1';
-    } else if (state.score < 250) {
-      ctx.fillStyle = '#7a8a8f';
-    } else {
-      ctx.fillStyle = '#edc76c';
-    }
+    ctx.fillStyle = '#6ab04c'; // Parkrasen
     ctx.fillRect(0, 0, w, h);
+
+    const offset = (state.worldOffset * 0.3) % 80;
+    for (let x = -offset; x < w + 80; x += 80) {
+      for (let y = 40; y < h; y += 80) {
+        drawFlower(x + 40, y);
+      }
+    }
+  }
+
+  function drawFlower(x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#ffb3c1';
+    for (let i = 0; i < 5; i++) {
+      const angle = i * (Math.PI * 2 / 5);
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(angle) * 5, Math.sin(angle) * 5, 4, 7, angle, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawCactus(x, baseY, scale) {
@@ -471,7 +489,7 @@
     ctx.restore();
   }
 
-  function drawStripedRect(x, y, w, h) {
+  function drawStripedRect(x, y, w, h, withText = false) {
     const stripe = 10;
     for (let i = 0; i < h; i += stripe) {
       ctx.fillStyle = (i / stripe) % 2 === 0 ? '#ff5555' : '#ffffff';
@@ -480,6 +498,18 @@
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
+
+    if (withText && state.topDown) {
+      ctx.save();
+      ctx.translate(x + w / 2, y + h / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('DRAGONFLY', 0, 0);
+      ctx.restore();
+    }
   }
 
   function drawCityBarrier(o) {
@@ -487,6 +517,13 @@
     const bottomY = o.center + o.gap/2;
     drawStripedRect(o.x, 0, o.width, topH);
     drawStripedRect(o.x, bottomY, o.width, world.h - bottomY);
+  }
+
+  function drawDragonflyBarrier(o) {
+    const topH = Math.max(0, o.center - o.gap / 2);
+    const bottomY = o.center + o.gap / 2;
+    drawStripedRect(o.x, 0, o.width, topH, true);
+    drawStripedRect(o.x, bottomY, o.width, world.h - bottomY, true);
   }
 
   function drawSignRect(x, y, w, h) {
@@ -608,21 +645,32 @@
     // Räder
     ctx.fillStyle = '#555';
     ctx.beginPath();
-    ctx.arc(-20, 20, 10, 0, Math.PI*2);
-    ctx.arc(20, 20, 10, 0, Math.PI*2);
+    ctx.arc(-15, 18, 10, 0, Math.PI * 2);
+    ctx.arc(18, 18, 10, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-    // Trittbrett
+    // Karosserie (Vespa-Stil) in SWICA Türkis
+    ctx.fillStyle = '#00b2a9';
+    ctx.beginPath();
+    ctx.moveTo(-20, 8);
+    ctx.quadraticCurveTo(-22, -12, -5, -15);
+    ctx.quadraticCurveTo(25, -20, 25, 5);
+    ctx.lineTo(25, 18);
+    ctx.lineTo(-20, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Sitz
     ctx.fillStyle = '#333';
-    ctx.fillRect(-25, 10, 50, 6);
-
-    // Lenkerstange
-    ctx.fillStyle = '#555';
-    ctx.fillRect(0, -40, 4, 50);
+    ctx.fillRect(-5, -17, 15, 5);
 
     // Lenker
-    ctx.fillStyle = '#777';
-    ctx.fillRect(-8, -44, 20, 4);
+    ctx.fillStyle = '#555';
+    ctx.fillRect(8, -25, 20, 4);
 
     ctx.restore();
   }
@@ -635,20 +683,25 @@
     // Körper
     ctx.fillStyle = '#d8a81f';
     ctx.beginPath();
-    ctx.ellipse(0, 10, 30, 18, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 10, 30, 18, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     // Mähne
     ctx.fillStyle = '#a05a2c';
     ctx.beginPath();
-    ctx.arc(0, -20, 25, 0, Math.PI*2);
+    ctx.arc(0, -20, 25, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     // Kopf
     ctx.fillStyle = '#d8a81f';
     ctx.beginPath();
-    ctx.arc(0, -20, 15, 0, Math.PI*2);
+    ctx.arc(0, -20, 15, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     // Gesicht
     ctx.fillStyle = '#000';
@@ -661,13 +714,16 @@
 
     ctx.fillStyle = '#a05a2c';
     ctx.beginPath();
-    ctx.arc(0, -17, 3, 0, Math.PI*2);
+    ctx.arc(0, -17, 3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     // Beine
     ctx.fillStyle = '#d8a81f';
     ctx.fillRect(-20, 20, 8, 15);
     ctx.fillRect(12, 20, 8, 15);
+    ctx.strokeRect(-20, 20, 8, 15);
+    ctx.strokeRect(12, 20, 8, 15);
 
     // Schwanz
     ctx.strokeStyle = '#d8a81f';
@@ -678,8 +734,9 @@
     ctx.stroke();
     ctx.fillStyle = '#a05a2c';
     ctx.beginPath();
-    ctx.arc(45, 15, 5, 0, Math.PI*2);
+    ctx.arc(45, 15, 5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
     
     ctx.restore();
   }
@@ -689,18 +746,23 @@
     ctx.save();
     ctx.scale(scale, scale);
 
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-25, -5, 50, 10);
-
-    ctx.fillStyle = '#555';
+    // Körper
+    ctx.fillStyle = '#00b2a9';
     ctx.beginPath();
-    ctx.arc(-20, 0, 8, 0, Math.PI * 2);
-    ctx.arc(20, 0, 8, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 20, 40, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-    ctx.fillStyle = '#777';
-    ctx.fillRect(-2, -40, 4, 35);
-    ctx.fillRect(-10, -40, 20, 4);
+    // Sitz
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-10, -5, 20, 10);
+
+    // Lenker
+    ctx.fillStyle = '#555';
+    ctx.fillRect(-15, -40, 30, 6);
+
     ctx.restore();
   }
 
@@ -713,11 +775,15 @@
     ctx.beginPath();
     ctx.arc(0, 0, 30, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     ctx.fillStyle = '#d8a81f';
     ctx.beginPath();
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
 
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -1116,6 +1182,7 @@
   function drawDragonflyTop(p, t) {
     ctx.save();
     ctx.translate(p.x, p.y);
+    ctx.rotate(Math.PI / 2);
 
     const wingFlap = Math.sin(t * 30) * 0.25;
 
@@ -1273,6 +1340,8 @@
       state.topDown = true;
       state.baseSpeed = 320;
       state.topDownStartScore = state.score;
+      player.y = world.h * 0.5;
+      player.vy = 0;
     }
     const progressScore = state.topDown ? state.score - state.topDownStartScore : state.score;
     state.speed = 1 + Math.min(1.2, Math.max(0, progressScore) / 150);
@@ -1442,7 +1511,9 @@
     // Hindernisse zeichnen
     for (const o of obstacles) {
       if (o.type === 'reed') {
-        if (state.score < 150) {
+        if (state.topDown) {
+          drawDragonflyBarrier(o);
+        } else if (state.score < 150) {
           ctx.fillStyle = '#2e7d32';
           ctx.fillRect(o.x, 0, o.width, Math.max(0, o.center - o.gap/2));
           ctx.fillStyle = '#4caf50';
