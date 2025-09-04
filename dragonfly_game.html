@@ -161,7 +161,9 @@
     baseSpeed: 320, // px/s world scroll speed
     worldOffset: 0,
     activePowerups: {}, // Aktive Powerups speichern
-    playerName: ''
+    playerName: '',
+    topDown: false,
+    topDownStartScore: 0
   };
   bestEl.textContent = state.best;
 
@@ -209,8 +211,9 @@
   const obstacles = []; const pickUps = []; const powerups = []; const clouds = [];
 
   function reset() {
-    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0;
+    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0; state.topDown = false; state.baseSpeed = 320; state.topDownStartScore = 0;
     state.activePowerups = {};
+    speedEl.textContent = '1.0x';
     obstacles.length = 0; pickUps.length = 0; powerups.length = 0;
     player.x = world.w * 0.22; player.y = world.h * 0.5; 
     player.vx = 0; player.vy = 0; player.invuln = 0;
@@ -490,7 +493,19 @@
   function drawWaterLily(x, y, size) {
     ctx.save();
     ctx.translate(x, y);
-    
+
+    if (state.score < 150) {
+      drawWaterLilyShape(size);
+    } else if (state.score < 250) {
+      drawScooter(size);
+    } else {
+      drawLion(size);
+    }
+
+    ctx.restore();
+  }
+
+  function drawWaterLilyShape(size) {
     // Schatten unter der Seerose
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 10;
@@ -500,22 +515,22 @@
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fill();
     ctx.shadowColor = 'transparent';
-    
+
     // Seerosenblaetter (3-4 Blätter)
     const numLeaves = 3 + Math.floor(Math.random() * 2);
     for (let i = 0; i < numLeaves; i++) {
       const angle = (i / numLeaves) * Math.PI * 2;
       const leafSize = size * (0.7 + Math.random() * 0.3);
-      
+
       ctx.save();
       ctx.rotate(angle);
-      
+
       // Blattform
       ctx.fillStyle = '#1e8c39';
       ctx.beginPath();
       ctx.ellipse(leafSize*0.4, 0, leafSize*0.6, leafSize*0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Blattadern
       ctx.strokeStyle = '#156626';
       ctx.lineWidth = 1;
@@ -527,40 +542,122 @@
       ctx.moveTo(leafSize*0.3, -leafSize*0.2);
       ctx.quadraticCurveTo(leafSize*0.5, 0, leafSize*0.3, leafSize*0.2);
       ctx.stroke();
-      
+
       ctx.restore();
     }
-    
+
     // Seerose Blüte
     ctx.fillStyle = 'white';
     ctx.beginPath();
     ctx.arc(0, 0, size*0.25, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // Blütenblätter
     const numPetals = 8;
     for (let i = 0; i < numPetals; i++) {
       const angle = (i / numPetals) * Math.PI * 2;
       const petalLength = size * 0.25;
-      
+
       ctx.save();
       ctx.rotate(angle);
       ctx.translate(size*0.2, 0);
-      
+
       ctx.fillStyle = 'white';
       ctx.beginPath();
       ctx.ellipse(0, 0, petalLength, petalLength*0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      
+
       ctx.restore();
     }
-    
+
     // Blütenmitte
     ctx.fillStyle = '#ffda0d';
     ctx.beginPath();
     ctx.arc(0, 0, size*0.12, 0, Math.PI * 2);
     ctx.fill();
-    
+  }
+
+  function drawScooter(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // Räder
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.arc(-20, 20, 10, 0, Math.PI*2);
+    ctx.arc(20, 20, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    // Trittbrett
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-25, 10, 50, 6);
+
+    // Lenkerstange
+    ctx.fillStyle = '#555';
+    ctx.fillRect(0, -40, 4, 50);
+
+    // Lenker
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-8, -44, 20, 4);
+
+    ctx.restore();
+  }
+
+  function drawLion(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // Körper
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.ellipse(0, 10, 30, 18, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Mähne
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, -20, 25, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kopf
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.arc(0, -20, 15, 0, Math.PI*2);
+    ctx.fill();
+
+    // Gesicht
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(-5, -22, 2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(5, -22, 2, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, -17, 3, 0, Math.PI*2);
+    ctx.fill();
+
+    // Beine
+    ctx.fillStyle = '#d8a81f';
+    ctx.fillRect(-20, 20, 8, 15);
+    ctx.fillRect(12, 20, 8, 15);
+
+    // Schwanz
+    ctx.strokeStyle = '#d8a81f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(30, 10);
+    ctx.quadraticCurveTo(40, 0, 45, 15);
+    ctx.stroke();
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(45, 15, 5, 0, Math.PI*2);
+    ctx.fill();
+
     ctx.restore();
   }
   
@@ -625,24 +722,32 @@
 
   // Vogel als neues Hindernis
   function drawBird(x, y, size, t) {
-    ctx.save(); 
+    ctx.save();
     ctx.translate(x, y);
-    
-    // Flügelbewegung
+
     const wingFlap = Math.sin(t * 15) * 0.5;
-    
+    if (state.score >= 150 && state.score < 250) {
+      drawSeagullBody(size, wingFlap);
+    } else {
+      drawDefaultBirdBody(size, wingFlap);
+    }
+
+    ctx.restore();
+  }
+
+  function drawDefaultBirdBody(size, wingFlap) {
     // Körper
     ctx.fillStyle = '#78552b';
     ctx.beginPath();
     ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Kopf
     ctx.fillStyle = '#94683a';
     ctx.beginPath();
     ctx.arc(size*0.5, -size*0.3, size*0.3, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Schnabel
     ctx.fillStyle = '#e09f3e';
     ctx.beginPath();
@@ -651,13 +756,13 @@
     ctx.lineTo(size*0.8, -size*0.2);
     ctx.closePath();
     ctx.fill();
-    
+
     // Auge
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(size*0.6, -size*0.35, size*0.08, 0, Math.PI*2);
     ctx.fill();
-    
+
     // Flügel oben
     ctx.fillStyle = '#8b653d';
     ctx.save();
@@ -667,7 +772,7 @@
     ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
-    
+
     // Flügel unten
     ctx.fillStyle = '#8b653d';
     ctx.save();
@@ -677,7 +782,7 @@
     ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
-    
+
     // Schwanz
     ctx.fillStyle = '#94683a';
     ctx.beginPath();
@@ -686,8 +791,64 @@
     ctx.lineTo(-size*1.2, size*0.2);
     ctx.closePath();
     ctx.fill();
-    
+  }
+
+  function drawSeagullBody(size, wingFlap) {
+    // Körper
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kopf
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.arc(size*0.5, -size*0.3, size*0.25, 0, Math.PI*2);
+    ctx.fill();
+
+    // Schnabel
+    ctx.fillStyle = '#ffce00';
+    ctx.beginPath();
+    ctx.moveTo(size*0.7, -size*0.3);
+    ctx.lineTo(size*1.1, -size*0.28);
+    ctx.lineTo(size*0.7, -size*0.22);
+    ctx.closePath();
+    ctx.fill();
+
+    // Auge
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(size*0.55, -size*0.35, size*0.07, 0, Math.PI*2);
+    ctx.fill();
+
+    // Flügel oben
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.translate(0, -size*0.1);
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
     ctx.restore();
+
+    // Flügel unten
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.translate(0, size*0.1);
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Schwanz
+    ctx.fillStyle = '#d0d0d0';
+    ctx.beginPath();
+    ctx.moveTo(-size*0.6, 0);
+    ctx.lineTo(-size*1.0, -size*0.2);
+    ctx.lineTo(-size*1.0, size*0.2);
+    ctx.closePath();
+    ctx.fill();
   }
 
   // Powerup zeichnen
@@ -923,7 +1084,15 @@
   }
 
   function update(dt) {
-    state.t += dt; state.speed = 1 + Math.min(1.2, state.score / 150); speedEl.textContent = `${state.speed.toFixed(1)}x`;
+    state.t += dt;
+    if (!state.topDown && state.score >= 400) {
+      state.topDown = true;
+      state.baseSpeed = 320;
+      state.topDownStartScore = state.score;
+    }
+    const progressScore = state.topDown ? state.score - state.topDownStartScore : state.score;
+    state.speed = 1 + Math.min(1.2, Math.max(0, progressScore) / 150);
+    speedEl.textContent = `${state.speed.toFixed(1)}x`;
     const scroll = state.baseSpeed * state.speed * dt; state.worldOffset += scroll;
 
     if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
@@ -1064,8 +1233,14 @@
 
   function render() {
     ctx.clearRect(0,0,world.w,world.h);
+    ctx.save();
+    if (state.topDown) {
+      ctx.translate(world.w / 2, world.h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.translate(-world.w / 2, -world.h / 2);
+    }
     drawBackground();
-    
+
     const t = state.t;
     
     // Hindernisse zeichnen
@@ -1173,6 +1348,7 @@
     ctx.beginPath();
     ctx.ellipse(player.x + 6, shadowY, 28 * shadowScale, 6 * shadowScale, 0, 0, Math.PI*2);
     ctx.fill();
+    ctx.restore();
     ctx.restore();
   }
   
