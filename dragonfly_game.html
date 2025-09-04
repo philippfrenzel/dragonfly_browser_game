@@ -178,15 +178,21 @@
   resize(); addEventListener('resize', resize);
 
   // Input
-  const input = { flap: 0 }; let justFlapped = false;
+  const input = { flap: 0, left: 0, right: 0 }; let justFlapped = false;
   function onPress() { input.flap = 1; justFlapped = true; }
   function onRelease() { input.flap = 0; }
   addEventListener('keydown', (e) => {
-    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); onPress(); }
+    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) { e.preventDefault(); onPress(); }
+    else if (state.topDown && e.code === 'ArrowLeft') { e.preventDefault(); input.left = 1; }
+    else if (state.topDown && e.code === 'ArrowRight') { e.preventDefault(); input.right = 1; }
     else if (e.code === 'KeyP') togglePause();
     else if (e.code === 'Enter' && !state.running) start();
   });
-  addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'ArrowUp') onRelease(); });
+  addEventListener('keyup', (e) => {
+    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) onRelease();
+    else if (state.topDown && e.code === 'ArrowLeft') { input.left = 0; }
+    else if (state.topDown && e.code === 'ArrowRight') { input.right = 0; }
+  });
   canvas.addEventListener('pointerdown', onPress);
   addEventListener('pointerup', onRelease);
   startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
@@ -309,20 +315,25 @@
 
   // Rendering helpers
   function drawBackground() {
+    if (state.topDown) {
+      drawBackgroundTopDown();
+      return;
+    }
+
     const w = world.w, h = world.h; const p = state.worldOffset * 0.15; ctx.save();
-    
+
     // Himmel - leichter Verlauf
     const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.36);
     skyGradient.addColorStop(0, '#a7d8f8');
     skyGradient.addColorStop(1, '#d7eeff');
     ctx.fillStyle = skyGradient;
     ctx.fillRect(0, 0, w, h * 0.36);
-    
+
     // Wolken zeichnen
     for (const cloud of clouds) {
       drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity);
     }
-    
+
     if (state.score < 150) {
       // Mountains - SWICA Türkistöne
       for (let i = 0; i < 2; i++) {
@@ -388,6 +399,18 @@
     const reedOffset = (state.worldOffset * 1.2) % 80;
     for (let x = -reedOffset; x < w + 80; x += 80) drawReedCluster(x, riverY + 6, 1);
     ctx.restore();
+  }
+
+  function drawBackgroundTopDown() {
+    const w = world.w, h = world.h;
+    if (state.score < 150) {
+      ctx.fillStyle = '#1a6aa1';
+    } else if (state.score < 250) {
+      ctx.fillStyle = '#7a8a8f';
+    } else {
+      ctx.fillStyle = '#edc76c';
+    }
+    ctx.fillRect(0, 0, w, h);
   }
 
   function drawCactus(x, baseY, scale) {
@@ -497,9 +520,9 @@
     if (state.score < 150) {
       drawWaterLilyShape(size);
     } else if (state.score < 250) {
-      drawScooter(size);
+      if (state.topDown) drawScooterTop(size); else drawScooter(size);
     } else {
-      drawLion(size);
+      if (state.topDown) drawLionTop(size); else drawLion(size);
     }
 
     ctx.restore();
@@ -657,7 +680,50 @@
     ctx.beginPath();
     ctx.arc(45, 15, 5, 0, Math.PI*2);
     ctx.fill();
+    
+    ctx.restore();
+  }
 
+  function drawScooterTop(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#333';
+    ctx.fillRect(-25, -5, 50, 10);
+
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.arc(-20, 0, 8, 0, Math.PI * 2);
+    ctx.arc(20, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#777';
+    ctx.fillRect(-2, -40, 4, 35);
+    ctx.fillRect(-10, -40, 20, 4);
+    ctx.restore();
+  }
+
+  function drawLionTop(size) {
+    const scale = size / 60;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#a05a2c';
+    ctx.beginPath();
+    ctx.arc(0, 0, 30, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#d8a81f';
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(-8, -5, 3, 0, Math.PI * 2);
+    ctx.arc(8, -5, 3, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
   
@@ -726,10 +792,18 @@
     ctx.translate(x, y);
 
     const wingFlap = Math.sin(t * 15) * 0.5;
-    if (state.score >= 150 && state.score < 250) {
-      drawSeagullBody(size, wingFlap);
+    if (state.topDown) {
+      if (state.score >= 150 && state.score < 250) {
+        drawSeagullTop(size, wingFlap);
+      } else {
+        drawDefaultBirdTop(size, wingFlap);
+      }
     } else {
-      drawDefaultBirdBody(size, wingFlap);
+      if (state.score >= 150 && state.score < 250) {
+        drawSeagullBody(size, wingFlap);
+      } else {
+        drawDefaultBirdBody(size, wingFlap);
+      }
     }
 
     ctx.restore();
@@ -839,6 +913,7 @@
     ctx.beginPath();
     ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
     ctx.fill();
+
     ctx.restore();
 
     // Schwanz
@@ -848,6 +923,71 @@
     ctx.lineTo(-size*1.0, -size*0.2);
     ctx.lineTo(-size*1.0, size*0.2);
     ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawDefaultBirdTop(size, wingFlap) {
+    ctx.fillStyle = '#94683a';
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#8b653d';
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#e09f3e';
+    ctx.beginPath();
+    ctx.arc(0, -size * 0.7, size * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawSeagullTop(size, wingFlap) {
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#d0d0d0';
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffce00';
+    ctx.beginPath();
+    ctx.arc(0, -size * 0.7, size * 0.18, 0, Math.PI * 2);
+
+    ctx.restore();
+
+    // Schwanz
+    ctx.fillStyle = '#d0d0d0';
+    ctx.beginPath();
+    ctx.moveTo(-size*0.6, 0);
+    ctx.lineTo(-size*1.0, -size*0.2);
+    ctx.lineTo(-size*1.0, size*0.2);
+    ctx.closePath();
+
     ctx.fill();
   }
 
@@ -969,6 +1109,50 @@
     // Root highlight
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawDragonflyTop(p, t) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    const wingFlap = Math.sin(t * 30) * 0.25;
+
+    // Body
+    ctx.fillStyle = '#39d4ff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = '#a0ffcf';
+    ctx.beginPath();
+    ctx.arc(0, -14, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wings
+    const wingFill = 'rgba(255,255,255,0.5)';
+    const wingStroke = 'rgba(255,255,255,0.85)';
+    ctx.fillStyle = wingFill;
+    ctx.strokeStyle = wingStroke;
+    ctx.lineWidth = 1;
+
+    ctx.save();
+    ctx.rotate(wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-wingFlap);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
 
     ctx.restore();
   }
@@ -1095,9 +1279,19 @@
     speedEl.textContent = `${state.speed.toFixed(1)}x`;
     const scroll = state.baseSpeed * state.speed * dt; state.worldOffset += scroll;
 
-    if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
-    player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
-    const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
+    if (state.topDown) {
+      const move = 360 * dt;
+      if (input.left) player.y -= move;
+      if (input.right) player.y += move;
+      const minY = 30, maxY = world.h - 30;
+      if (player.y < minY) player.y = minY;
+      if (player.y > maxY) player.y = maxY;
+      player.vy = 0;
+    } else {
+      if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
+      player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
+      const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
+    }
     if (player.invuln > 0) player.invuln -= dt;
     
     // Powerup Timer verarbeiten
@@ -1234,11 +1428,13 @@
   function render() {
     ctx.clearRect(0,0,world.w,world.h);
     ctx.save();
+
     if (state.topDown) {
       ctx.translate(world.w / 2, world.h / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.translate(-world.w / 2, -world.h / 2);
     }
+
     drawBackground();
 
     const t = state.t;
@@ -1275,11 +1471,13 @@
     for (const p of powerups) drawPowerup(p, t);
 
     // Spieler (blink when invulnerable)
-    if (player.invuln > 0) { 
-      if (((t * 20) | 0) % 2 === 0) drawDragonfly(player, t); 
+    if (player.invuln > 0) {
+      if (((t * 20) | 0) % 2 === 0) {
+        state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
+      }
     }
-    else { 
-      drawDragonfly(player, t); 
+    else {
+      state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
     }
     
     // Shield-Effekt um Spieler zeichnen, wenn aktiv
