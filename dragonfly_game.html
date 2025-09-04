@@ -243,7 +243,7 @@
   let lastObstacleTime = 0; // Vermeidung von zu dicht aufeinanderfolgenden Hindernissen
   function spawnObstacle() {
     const river = world.h * world.riverY;
-    // 3 Hindernistypen: Zahlenreihen, Seerosen und Vögel
+    // 3 Hindernistypen: vertikale Hindernisse, Seerosen und Vögel
     const rnd = Math.random();
     const type = rnd < 0.5 ? 'reed' : (rnd < 0.8 ? 'waterLily' : 'bird');
     
@@ -439,10 +439,52 @@
     
     ctx.restore();
   }
-  
+
+  function drawStripedRect(x, y, w, h) {
+    const stripe = 10;
+    for (let i = 0; i < h; i += stripe) {
+      ctx.fillStyle = (i / stripe) % 2 === 0 ? '#ff5555' : '#ffffff';
+      ctx.fillRect(x, y + i, w, Math.min(stripe, h - i));
+    }
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function drawCityBarrier(o) {
+    const topH = Math.max(0, o.center - o.gap/2);
+    const bottomY = o.center + o.gap/2;
+    drawStripedRect(o.x, 0, o.width, topH);
+    drawStripedRect(o.x, bottomY, o.width, world.h - bottomY);
+  }
+
+  function drawSignRect(x, y, w, h) {
+    ctx.fillStyle = '#f2c94c';
+    ctx.strokeStyle = '#b98b2c';
+    ctx.lineWidth = 2;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.save();
+    ctx.translate(x + w/2, y + h/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle = '#000';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Vorsicht', 0, -5);
+    ctx.fillText('Wüste', 0, 15);
+    ctx.restore();
+  }
+
+  function drawDesertSign(o) {
+    const topH = Math.max(0, o.center - o.gap/2);
+    const bottomY = o.center + o.gap/2;
+    drawSignRect(o.x, 0, o.width, topH);
+    drawSignRect(o.x, bottomY, o.width, world.h - bottomY);
+  }
+
   function drawWaterLily(x, y, size) {
-    ctx.save(); 
-    ctx.translate(x, y); 
+    ctx.save();
+    ctx.translate(x, y);
     
     // Schatten unter der Seerose
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
@@ -1018,12 +1060,23 @@
     // Hindernisse zeichnen
     for (const o of obstacles) {
       if (o.type === 'reed') {
-        ctx.fillStyle = '#2e7d32'; ctx.fillRect(o.x, 0, o.width, Math.max(0, o.center - o.gap/2));
-        ctx.fillStyle = '#4caf50'; ctx.fillRect(o.x, Math.max(0, o.center - o.gap/2) - 10, o.width, 10);
-        const bottomY = o.center + o.gap/2; ctx.fillStyle = '#2e7d32'; ctx.fillRect(o.x, bottomY, o.width, world.h - bottomY);
-        ctx.fillStyle = '#4caf50'; ctx.fillRect(o.x, bottomY, o.width, 10);
-      } else if (o.type === 'waterLily') { 
-        drawWaterLily(o.x, o.y, o.size); 
+        if (state.score < 150) {
+          ctx.fillStyle = '#2e7d32';
+          ctx.fillRect(o.x, 0, o.width, Math.max(0, o.center - o.gap/2));
+          ctx.fillStyle = '#4caf50';
+          ctx.fillRect(o.x, Math.max(0, o.center - o.gap/2) - 10, o.width, 10);
+          const bottomY = o.center + o.gap/2;
+          ctx.fillStyle = '#2e7d32';
+          ctx.fillRect(o.x, bottomY, o.width, world.h - bottomY);
+          ctx.fillStyle = '#4caf50';
+          ctx.fillRect(o.x, bottomY, o.width, 10);
+        } else if (state.score < 250) {
+          drawCityBarrier(o);
+        } else {
+          drawDesertSign(o);
+        }
+      } else if (o.type === 'waterLily') {
+        drawWaterLily(o.x, o.y, o.size);
       } else if (o.type === 'bird') {
         drawBird(o.x, o.y, o.size, t);
       }
