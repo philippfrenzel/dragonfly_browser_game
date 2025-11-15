@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Solar-Panels auf dem Dach</title>
+  <style>
+    :root {
+      --bg: #0b1623;
+      --hud: #e6f2ff;
+      --accent: #00aaa0;
+      --accent-2: #a0ffcf;
+      --danger: #ff6b6b;
+      --roof: #8b4513;
+      --panel: #1a3d5c;
+      --target: #ffd700;
+    }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: radial-gradient(1200px 600px at 50% 10%, #12263a 0%, var(--bg) 60%);
+      color: var(--hud);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .wrap {
+      width: min(100vw, 900px);
+      aspect-ratio: 4/3;
+      position: relative;
+      border-radius: 16px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+      overflow: hidden;
+      background: linear-gradient(#93d8ff 0%, #4ab6ff 40%, #87ceeb 100%);
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    .hud {
+      position: absolute; top: 10px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,.45);
+      user-select: none; pointer-events: none;
+      z-index: 10;
+    }
+    .tag { 
+      padding: 6px 10px; 
+      background: rgba(0,0,0,.25); 
+      border-radius: 999px; 
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); 
+    }
+    .overlay { 
+      position: absolute; 
+      inset: 0; 
+      display: grid; 
+      place-items: center; 
+      background: radial-gradient(1000px 400px at 50% 10%, rgba(0,0,0,.15), rgba(0,0,0,.55)); 
+      text-align: center; 
+      padding: 24px;
+      z-index: 20;
+    }
+    .card { 
+      background: rgba(255,255,255,.95); 
+      border-radius: 16px; 
+      padding: 24px 22px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08); 
+      backdrop-filter: blur(6px); 
+      max-width: 600px; 
+      color: #003b4a; 
+    }
+    h1 { margin: 0 0 8px 0; font-size: clamp(22px, 2.4vw, 36px); letter-spacing: .5px; }
+    p { margin: 6px 0; opacity: .95; font-size: 14px; line-height: 1.5; }
+    kbd { 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+      background: rgba(0,137,137,.12); 
+      padding: 2px 6px; 
+      border-radius: 6px; 
+      border: 1px solid rgba(0,137,137,.25); 
+    }
+    .btn { 
+      display: inline-block; 
+      margin: 10px 5px 0 5px; 
+      padding: 10px 16px; 
+      border-radius: 999px; 
+      font-weight: 700; 
+      letter-spacing: .3px; 
+      color: white; 
+      background: linear-gradient(180deg, #00aaa0 0%, #008989 100%); 
+      box-shadow: 0 8px 16px rgba(0,0,0,.25); 
+      text-decoration: none; 
+      pointer-events: auto; 
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-secondary {
+      background: linear-gradient(180deg, #6c757d 0%, #545b62 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="game"></canvas>
+    <div class="hud">
+      <div class="tag">Level: <span id="level">1</span>/5</div>
+      <div class="tag">Züge: <span id="moves">0</span></div>
+      <div class="tag">Beste: <span id="best">-</span></div>
+    </div>
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h1>☀️ Solar-Panels auf dem Dach</h1>
+        <p>Schiebe alle Solar-Panels auf die markierten Positionen!</p>
+        <p><strong>Hindernisse:</strong> 🪟 Dachfenster · 🏠 Schornsteine · 🌑 Schatten</p>
+        <p><strong>Steuerung:</strong> <kbd>Pfeiltasten</kbd> oder <kbd>WASD</kbd> zum Bewegen · <kbd>R</kbd> Level zurücksetzen · <kbd>Z</kbd> Zug rückgängig</p>
+        <p style="font-size: 12px; opacity: 0.8;">Hinweis: Panels können nur geschoben, nicht gezogen werden. Vermeide es, Panels in Ecken zu schieben!</p>
+        <button class="btn" id="start">Spiel starten</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('start');
+  const levelEl = document.getElementById('level');
+  const movesEl = document.getElementById('moves');
+  const bestEl = document.getElementById('best');
+
+  let DPR = Math.max(1, window.devicePixelRatio || 1);
+  
+  const state = {
+    running: false,
+    currentLevel: 0,
+    moves: 0,
+    history: [], // For undo
+    bestMoves: {} // Store best moves per level
+  };
+
+  // Load best moves from localStorage
+  try {
+    const saved = localStorage.getItem('solar-best-moves');
+    if (saved) state.bestMoves = JSON.parse(saved);
+  } catch(e) {}
+
+  // Grid size
+  const GRID_SIZE = 40;
+  
+  // Tile types
+  const TILES = {
+    EMPTY: 0,
+    ROOF: 1,
+    WINDOW: 2,
+    CHIMNEY: 3,
+    SHADOW: 4,
+    TARGET: 5,
+    PANEL: 6,
+    PANEL_ON_TARGET: 7,
+    PLAYER: 8
+  };
+
+  // Level definitions - 5 levels with increasing difficulty
+  const LEVELS = [
+    // Level 1 - Tutorial (5x5)
+    {
+      name: "Einfacher Start",
+      grid: [
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 1, 5, 1, 0, 0],
+        [0, 0, 1, 4, 1, 1, 1],
+        [1, 1, 1, 6, 4, 5, 1],
+        [1, 5, 8, 6, 1, 1, 1],
+        [1, 1, 1, 6, 1, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0]
+      ]
+    },
+    // Level 2 - Windows and Chimney (6x6)
+    {
+      name: "Hindernisse",
+      grid: [
+        [0, 0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 5, 1, 2, 1, 0],
+        [0, 0, 1, 4, 1, 4, 1, 0],
+        [1, 1, 1, 6, 3, 6, 1, 1],
+        [1, 5, 4, 6, 8, 4, 5, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    // Level 3 - Shadow maze (7x7)
+    {
+      name: "Schatten-Labyrinth",
+      grid: [
+        [0, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 1, 4, 4, 3, 4, 2, 1, 0],
+        [1, 1, 4, 6, 1, 6, 4, 1, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 4, 6, 1, 8, 1, 6, 4, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 1, 4, 4, 2, 4, 4, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    // Level 4 - Complex puzzle (8x8)
+    {
+      name: "Dachgarten",
+      grid: [
+        [0, 0, 1, 1, 1, 1, 1, 0, 0],
+        [0, 0, 1, 5, 4, 5, 1, 0, 0],
+        [0, 1, 1, 2, 1, 2, 1, 1, 0],
+        [0, 1, 4, 6, 1, 6, 4, 1, 0],
+        [1, 1, 1, 1, 3, 1, 1, 1, 1],
+        [1, 4, 6, 1, 8, 1, 6, 4, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 1, 1, 2, 4, 2, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1, 0, 0]
+      ]
+    },
+    // Level 5 - Master challenge (9x9)
+    {
+      name: "Meister-Herausforderung",
+      grid: [
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 1, 1, 4, 2, 4, 1, 1, 0, 0],
+        [0, 1, 1, 5, 1, 3, 1, 5, 1, 1, 0],
+        [0, 1, 4, 6, 1, 4, 1, 6, 4, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 4, 6, 1, 8, 1, 6, 4, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 4, 6, 1, 4, 1, 6, 4, 1, 0],
+        [0, 1, 1, 5, 1, 3, 1, 5, 1, 1, 0],
+        [0, 0, 1, 1, 4, 2, 4, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0]
+      ]
+    }
+  ];
+
+  let currentGrid = [];
+  let player = { x: 0, y: 0 };
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * DPR);
+    canvas.height = Math.floor(rect.height * DPR);
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  // Input handling
+  const keys = {};
+  addEventListener('keydown', (e) => {
+    keys[e.code] = true;
+    
+    if (!state.running) {
+      if (e.code === 'Enter') start();
+      return;
+    }
+
+    let moved = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      moved = movePlayer(0, -1);
+      e.preventDefault();
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      moved = movePlayer(0, 1);
+      e.preventDefault();
+    } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      moved = movePlayer(-1, 0);
+      e.preventDefault();
+    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      moved = movePlayer(1, 0);
+      e.preventDefault();
+    } else if (e.code === 'KeyR') {
+      resetLevel();
+      e.preventDefault();
+    } else if (e.code === 'KeyZ') {
+      undo();
+      e.preventDefault();
+    }
+
+    if (moved) {
+      render();
+      checkWin();
+    }
+  });
+
+  addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+  });
+
+  startBtn.addEventListener('click', (e) => { 
+    e.preventDefault(); 
+    start(); 
+  });
+
+  function start() {
+    overlay.style.display = 'none';
+    state.running = true;
+    state.currentLevel = 0;
+    state.moves = 0;
+    state.history = [];
+    loadLevel(state.currentLevel);
+    updateBestDisplay();
+    render();
+  }
+
+  function loadLevel(levelIndex) {
+    if (levelIndex < 0 || levelIndex >= LEVELS.length) return;
+    
+    const level = LEVELS[levelIndex];
+    currentGrid = level.grid.map(row => [...row]);
+    
+    // Find player position
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        if (currentGrid[y][x] === TILES.PLAYER) {
+          player.x = x;
+          player.y = y;
+          currentGrid[y][x] = TILES.ROOF; // Player doesn't occupy tile
+        }
+      }
+    }
+    
+    state.moves = 0;
+    state.history = [];
+    levelEl.textContent = (levelIndex + 1);
+    movesEl.textContent = state.moves;
+    updateBestDisplay();
+  }
+
+  function updateBestDisplay() {
+    const best = state.bestMoves[state.currentLevel];
+    bestEl.textContent = best !== undefined ? best : '-';
+  }
+
+  function saveGameState() {
+    return {
+      grid: currentGrid.map(row => [...row]),
+      playerX: player.x,
+      playerY: player.y,
+      moves: state.moves
+    };
+  }
+
+  function restoreGameState(gameState) {
+    currentGrid = gameState.grid.map(row => [...row]);
+    player.x = gameState.playerX;
+    player.y = gameState.playerY;
+    state.moves = gameState.moves;
+    movesEl.textContent = state.moves;
+  }
+
+  function undo() {
+    if (state.history.length === 0) return;
+    const prevState = state.history.pop();
+    restoreGameState(prevState);
+    render();
+  }
+
+  function resetLevel() {
+    loadLevel(state.currentLevel);
+    render();
+  }
+
+  function movePlayer(dx, dy) {
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+
+    // Check bounds
+    if (newY < 0 || newY >= currentGrid.length || 
+        newX < 0 || newX >= currentGrid[newY].length) {
+      return false;
+    }
+
+    const targetTile = currentGrid[newY][newX];
+
+    // Check if tile is walkable
+    if (targetTile === TILES.EMPTY || 
+        targetTile === TILES.WINDOW || 
+        targetTile === TILES.CHIMNEY) {
+      return false;
+    }
+
+    // Check if there's a panel
+    if (targetTile === TILES.PANEL || targetTile === TILES.PANEL_ON_TARGET) {
+      // Try to push the panel
+      const pushX = newX + dx;
+      const pushY = newY + dy;
+
+      // Check push bounds
+      if (pushY < 0 || pushY >= currentGrid.length || 
+          pushX < 0 || pushX >= currentGrid[pushY].length) {
+        return false;
+      }
+
+      const pushTargetTile = currentGrid[pushY][pushX];
+
+      // Check if push target is valid
+      if (pushTargetTile !== TILES.ROOF && 
+          pushTargetTile !== TILES.TARGET && 
+          pushTargetTile !== TILES.SHADOW) {
+        return false;
+      }
+
+      // Save state for undo
+      state.history.push(saveGameState());
+
+      // Move panel
+      const wasPanelOnTarget = targetTile === TILES.PANEL_ON_TARGET;
+      
+      // Remove panel from current position
+      if (wasPanelOnTarget) {
+        currentGrid[newY][newX] = TILES.TARGET;
+      } else {
+        // Check if there was a target under the panel
+        const originalTile = LEVELS[state.currentLevel].grid[newY][newX];
+        currentGrid[newY][newX] = (originalTile === TILES.TARGET) ? TILES.TARGET : TILES.ROOF;
+      }
+
+      // Place panel at new position
+      if (pushTargetTile === TILES.TARGET) {
+        currentGrid[pushY][pushX] = TILES.PANEL_ON_TARGET;
+      } else {
+        currentGrid[pushY][pushX] = TILES.PANEL;
+      }
+
+      // Move player
+      player.x = newX;
+      player.y = newY;
+      state.moves++;
+      movesEl.textContent = state.moves;
+
+      return true;
+    }
+
+    // Normal move
+    state.history.push(saveGameState());
+    player.x = newX;
+    player.y = newY;
+    state.moves++;
+    movesEl.textContent = state.moves;
+
+    return true;
+  }
+
+  function checkWin() {
+    // Check if all panels are on targets
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        if (currentGrid[y][x] === TILES.PANEL) {
+          return; // Still panels not on targets
+        }
+      }
+    }
+
+    // Level complete!
+    const currentBest = state.bestMoves[state.currentLevel];
+    if (currentBest === undefined || state.moves < currentBest) {
+      state.bestMoves[state.currentLevel] = state.moves;
+      try {
+        localStorage.setItem('solar-best-moves', JSON.stringify(state.bestMoves));
+      } catch(e) {}
+    }
+
+    if (state.currentLevel < LEVELS.length - 1) {
+      // Next level
+      setTimeout(() => {
+        showLevelComplete();
+      }, 300);
+    } else {
+      // Game complete!
+      setTimeout(() => {
+        showGameComplete();
+      }, 300);
+    }
+  }
+
+  function showLevelComplete() {
+    const level = LEVELS[state.currentLevel];
+    overlay.innerHTML = `<div class="card">
+      <h1>🎉 Level ${state.currentLevel + 1} geschafft!</h1>
+      <p><strong>${level.name}</strong></p>
+      <p>Züge: <strong>${state.moves}</strong></p>
+      <button class="btn" id="nextLevel">Nächstes Level</button>
+      <button class="btn btn-secondary" id="retryLevel">Nochmal versuchen</button>
+    </div>`;
+    overlay.style.display = 'grid';
+
+    document.getElementById('nextLevel').addEventListener('click', () => {
+      state.currentLevel++;
+      loadLevel(state.currentLevel);
+      overlay.style.display = 'none';
+      render();
+    });
+
+    document.getElementById('retryLevel').addEventListener('click', () => {
+      resetLevel();
+      overlay.style.display = 'none';
+      render();
+    });
+  }
+
+  function showGameComplete() {
+    const totalMoves = Object.values(state.bestMoves).reduce((a, b) => a + b, 0);
+    overlay.innerHTML = `<div class="card">
+      <h1>🏆 Alle Levels geschafft!</h1>
+      <p>Herzlichen Glückwunsch! Du hast alle Solar-Panels erfolgreich platziert!</p>
+      <p>Gesamtzüge (Beste): <strong>${totalMoves}</strong></p>
+      <button class="btn" id="playAgain">Nochmal spielen</button>
+    </div>`;
+    overlay.style.display = 'grid';
+
+    document.getElementById('playAgain').addEventListener('click', () => {
+      start();
+    });
+  }
+
+  function render() {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Calculate grid dimensions and centering
+    const rows = currentGrid.length;
+    const cols = Math.max(...currentGrid.map(row => row.length));
+    const cellSize = Math.min(
+      Math.floor((w * 0.8) / cols),
+      Math.floor((h * 0.8) / rows)
+    );
+
+    const gridWidth = cols * cellSize;
+    const gridHeight = rows * cellSize;
+    const offsetX = (w - gridWidth) / 2;
+    const offsetY = (h - gridHeight) / 2;
+
+    // Draw sky/background
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, '#87ceeb');
+    gradient.addColorStop(1, '#e0f6ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw clouds
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    for (let i = 0; i < 5; i++) {
+      const x = (i * w / 4 + Date.now() / 5000) % (w + 100) - 50;
+      const y = 50 + i * 40;
+      drawCloud(x, y, 1);
+    }
+
+    // Draw grid
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        const tile = currentGrid[y][x];
+        const px = offsetX + x * cellSize;
+        const py = offsetY + y * cellSize;
+
+        drawTile(tile, px, py, cellSize, x, y);
+      }
+    }
+
+    // Draw player
+    const px = offsetX + player.x * cellSize;
+    const py = offsetY + player.y * cellSize;
+    drawPlayer(px, py, cellSize);
+  }
+
+  function drawCloud(x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.arc(15, -5, 15, 0, Math.PI * 2);
+    ctx.arc(30, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawTile(tile, x, y, size, gridX, gridY) {
+    const padding = 2;
+
+    switch(tile) {
+      case TILES.EMPTY:
+        // Nothing
+        break;
+
+      case TILES.ROOF:
+        // Roof tile - terracotta/red
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Add some texture
+        ctx.strokeStyle = '#8b4513';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        break;
+
+      case TILES.WINDOW:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Window
+        ctx.fillStyle = '#4a90e2';
+        const windowSize = size * 0.6;
+        const windowOffset = size * 0.2;
+        ctx.fillRect(x + windowOffset, y + windowOffset, windowSize, windowSize);
+        
+        // Window frame
+        ctx.strokeStyle = '#2c5aa0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + windowOffset, y + windowOffset, windowSize, windowSize);
+        ctx.beginPath();
+        ctx.moveTo(x + size / 2, y + windowOffset);
+        ctx.lineTo(x + size / 2, y + windowOffset + windowSize);
+        ctx.moveTo(x + windowOffset, y + size / 2);
+        ctx.lineTo(x + windowOffset + windowSize, y + size / 2);
+        ctx.stroke();
+        
+        // Shine effect
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(x + windowOffset, y + windowOffset, windowSize / 2, windowSize / 2);
+        break;
+
+      case TILES.CHIMNEY:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Chimney
+        ctx.fillStyle = '#8b4513';
+        const chimneyWidth = size * 0.5;
+        const chimneyHeight = size * 0.7;
+        const chimneyX = x + (size - chimneyWidth) / 2;
+        const chimneyY = y + (size - chimneyHeight) / 2;
+        ctx.fillRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight);
+        
+        // Chimney top
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(chimneyX - 3, chimneyY, chimneyWidth + 6, 6);
+        
+        // Bricks
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.strokeRect(chimneyX, chimneyY + 8 + i * 10, chimneyWidth / 2, 8);
+          ctx.strokeRect(chimneyX + chimneyWidth / 2, chimneyY + 8 + i * 10, chimneyWidth / 2, 8);
+        }
+        break;
+
+      case TILES.SHADOW:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Shadow overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Diagonal lines to indicate shadow
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(x + i * size / 4, y + padding);
+          ctx.lineTo(x + padding, y + i * size / 4);
+          ctx.stroke();
+        }
+        break;
+
+      case TILES.TARGET:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Target marker - glowing circle
+        const targetSize = size * 0.5;
+        const targetX = x + size / 2;
+        const targetY = y + size / 2;
+        
+        // Glow
+        const gradient = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, targetSize);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, targetSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Target circle
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, targetSize * 0.6, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner dot
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case TILES.PANEL:
+      case TILES.PANEL_ON_TARGET:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Draw target if panel is on target
+        if (tile === TILES.PANEL_ON_TARGET) {
+          const targetSize = size * 0.5;
+          const targetX = x + size / 2;
+          const targetY = y + size / 2;
+          
+          // Glow
+          const gradient = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, targetSize);
+          gradient.addColorStop(0, 'rgba(50, 255, 50, 0.5)');
+          gradient.addColorStop(1, 'rgba(50, 255, 50, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, targetSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Solar panel
+        const panelPadding = size * 0.15;
+        ctx.fillStyle = tile === TILES.PANEL_ON_TARGET ? '#2a5a3c' : '#1a3d5c';
+        ctx.fillRect(x + panelPadding, y + panelPadding, 
+                     size - panelPadding * 2, size - panelPadding * 2);
+        
+        // Panel grid
+        ctx.strokeStyle = '#0d1f2d';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + panelPadding, y + panelPadding, 
+                       size - panelPadding * 2, size - panelPadding * 2);
+        
+        // Grid lines
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 3; i++) {
+          const pos = panelPadding + (size - panelPadding * 2) * (i / 3);
+          ctx.beginPath();
+          ctx.moveTo(x + pos, y + panelPadding);
+          ctx.lineTo(x + pos, y + size - panelPadding);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(x + panelPadding, y + pos);
+          ctx.lineTo(x + size - panelPadding, y + pos);
+          ctx.stroke();
+        }
+        
+        // Shine effect
+        ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+        ctx.fillRect(x + panelPadding, y + panelPadding, 
+                     (size - panelPadding * 2) / 2, (size - panelPadding * 2) / 2);
+        break;
+    }
+  }
+
+  function drawPlayer(x, y, size) {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const playerSize = size * 0.35;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + playerSize * 0.8, playerSize * 0.6, playerSize * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, playerSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outline
+    ctx.strokeStyle = '#e65100';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Hard hat
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - playerSize * 0.3, playerSize * 0.6, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#fbc02d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Face
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(centerX - playerSize * 0.3, centerY - playerSize * 0.1, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + playerSize * 0.3, centerY - playerSize * 0.1, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY + playerSize * 0.1, playerSize * 0.3, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+  }
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>
