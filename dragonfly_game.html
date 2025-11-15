@@ -3,108 +3,116 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Libellen‑Runner</title>
+  <title>Solar-Panels auf dem Dach</title>
   <style>
     :root {
       --bg: #0b1623;
       --hud: #e6f2ff;
-      --accent: #7fd1ff;
+      --accent: #00aaa0;
       --accent-2: #a0ffcf;
       --danger: #ff6b6b;
+      --roof: #8b4513;
+      --panel: #1a3d5c;
+      --target: #ffd700;
     }
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body {
-      margin: 0;
       background: radial-gradient(1200px 600px at 50% 10%, #12263a 0%, var(--bg) 60%);
       color: var(--hud);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
       display: grid;
       place-items: center;
       overflow: hidden;
     }
     .wrap {
-      width: min(100vw, 1000px);
-      aspect-ratio: 16/9;
+      width: min(100vw, 900px);
+      aspect-ratio: 4/3;
       position: relative;
       border-radius: 16px;
       box-shadow: 0 10px 35px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
       overflow: hidden;
-      background: linear-gradient(#93d8ff 0%, #4ab6ff 40%, #2f71a5 41%, #154c77 100%);
+      background: linear-gradient(#93d8ff 0%, #4ab6ff 40%, #87ceeb 100%);
     }
-    canvas { width: 100%; height: 100%; display: block; background: transparent; }
+    canvas { width: 100%; height: 100%; display: block; }
     .hud {
       position: absolute; top: 10px; left: 12px; right: 12px;
       display: flex; justify-content: space-between; align-items: center;
       font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,.45);
       user-select: none; pointer-events: none;
+      z-index: 10;
     }
-    .tag { padding: 6px 10px; background: rgba(0,0,0,.25); border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
-    .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(1000px 400px at 50% 10%, rgba(0,0,0,.15), rgba(0,0,0,.55)); text-align: center; padding: 24px; }
-    .card { background: rgba(255,255,255,.95); border-radius: 16px; padding: 24px 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08); backdrop-filter: blur(6px); max-width: 720px; color: #003b4a; }
-    .powerup-indicator { 
+    .tag { 
+      padding: 6px 10px; 
+      background: rgba(0,0,0,.25); 
+      border-radius: 999px; 
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); 
+    }
+    .overlay { 
       position: absolute; 
-      bottom: 10px; 
-      left: 12px; 
-      display: flex; 
-      gap: 10px; 
+      inset: 0; 
+      display: grid; 
+      place-items: center; 
+      background: radial-gradient(1000px 400px at 50% 10%, rgba(0,0,0,.15), rgba(0,0,0,.55)); 
+      text-align: center; 
+      padding: 24px;
+      z-index: 20;
     }
-    .powerup-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      font-weight: bold;
-      color: #00233a;
-      box-shadow: 0 3px 8px rgba(0,0,0,.3);
-      position: relative;
+    .card { 
+      background: rgba(255,255,255,.95); 
+      border-radius: 16px; 
+      padding: 24px 22px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08); 
+      backdrop-filter: blur(6px); 
+      max-width: 600px; 
+      color: #003b4a; 
     }
-    .powerup-timer {
-      position: absolute;
-      bottom: -5px;
-      right: -5px;
-      background: rgba(0,0,0,.5);
-      color: white;
-      border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      font-size: 10px;
-      display: grid;
-      place-items: center;
-    }
-    .shield { background: linear-gradient(180deg, #7fd1ff 0%, #5cc8ff 100%); }
-    .speed { background: linear-gradient(180deg, #ff7f7f 0%, #ff5c5c 100%); }
-    .magnet { background: linear-gradient(180deg, #ffd36b 0%, #ffb347 100%); }
     h1 { margin: 0 0 8px 0; font-size: clamp(22px, 2.4vw, 36px); letter-spacing: .5px; }
-    p { margin: 6px 0; opacity: .95; }
-    kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: rgba(0,137,137,.12); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(0,137,137,.25); }
-    .btn { display: inline-block; margin-top: 14px; padding: 10px 16px; border-radius: 999px; font-weight: 700; letter-spacing: .3px; color: white; background: linear-gradient(180deg, #00aaa0 0%, #008989 100%); box-shadow: 0 8px 16px rgba(0,0,0,.25); text-decoration: none; pointer-events: auto; }
+    p { margin: 6px 0; opacity: .95; font-size: 14px; line-height: 1.5; }
+    kbd { 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+      background: rgba(0,137,137,.12); 
+      padding: 2px 6px; 
+      border-radius: 6px; 
+      border: 1px solid rgba(0,137,137,.25); 
+    }
+    .btn { 
+      display: inline-block; 
+      margin: 10px 5px 0 5px; 
+      padding: 10px 16px; 
+      border-radius: 999px; 
+      font-weight: 700; 
+      letter-spacing: .3px; 
+      color: white; 
+      background: linear-gradient(180deg, #00aaa0 0%, #008989 100%); 
+      box-shadow: 0 8px 16px rgba(0,0,0,.25); 
+      text-decoration: none; 
+      pointer-events: auto; 
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
     .btn:active { transform: translateY(1px); }
-    .touch-hint { display: none; }
-    @media (pointer: coarse) { .touch-hint { display: inline; } }
-    .name-input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(0,137,137,.25); margin-top: 14px; }
+    .btn-secondary {
+      background: linear-gradient(180deg, #6c757d 0%, #545b62 100%);
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <canvas id="game"></canvas>
     <div class="hud">
-      <div class="tag">Score: <span id="score">0</span></div>
-      <div class="tag">Best: <span id="best">0</span></div>
-      <div class="tag">Speed: <span id="speed">1.0x</span></div>
+      <div class="tag">Level: <span id="level">1</span>/5</div>
+      <div class="tag">Züge: <span id="moves">0</span></div>
+      <div class="tag">Beste: <span id="best">-</span></div>
     </div>
-    <div class="powerup-indicator" id="powerupIndicator"></div>
     <div class="overlay" id="overlay">
       <div class="card">
-        <div style="text-align: center; margin-bottom: 15px;">
-          <img src="logo.png" alt="Libellen-Runner Logo" width="220" height="100" style="margin-bottom: 5px;" />
-        </div>
-        <h1>Runner</h1>
-        <p>Fliege als Libelle über den Fluss, weiche Zahlenreihen, Seerosen und Vögeln aus, sammle Mücken‑Orbs für Bonuspunkte.</p>
-        <p><strong>Power-Ups:</strong> 🛡️ Schutzschild · 🔥 Geschwindigkeitsschub · 🧲 Mücken-Magnet</p>
-        <p><strong>Steuerung:</strong> <kbd>Leertaste</kbd> oder <kbd>↑</kbd> Flügelschlag / Sprung · <kbd>P</kbd> Pause · <span class="touch-hint">Tippen für Flügelschlag</span></p>
-        <input type="text" id="playerNameInput" class="name-input" placeholder="Wie heißt du?">
-        <a href="#" class="btn" id="start">Losfliegen</a>
+        <h1>☀️ Solar-Panels auf dem Dach</h1>
+        <p>Schiebe alle Solar-Panels auf die markierten Positionen!</p>
+        <p><strong>Hindernisse:</strong> 🪟 Dachfenster · 🏠 Schornsteine · 🌑 Schatten</p>
+        <p><strong>Steuerung:</strong> <kbd>Pfeiltasten</kbd> oder <kbd>WASD</kbd> zum Bewegen · <kbd>R</kbd> Level zurücksetzen · <kbd>Z</kbd> Zug rückgängig</p>
+        <p style="font-size: 12px; opacity: 0.8;">Hinweis: Panels können nur geschoben, nicht gezogen werden. Vermeide es, Panels in Ecken zu schieben!</p>
+        <button class="btn" id="start">Spiel starten</button>
       </div>
     </div>
   </div>
@@ -113,1535 +121,695 @@
 (function() {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-    const overlay = document.getElementById('overlay');
-    const startBtn = document.getElementById('start');
-    const nameInput = document.getElementById('playerNameInput');
-    const scoreEl = document.getElementById('score');
-    const bestEl = document.getElementById('best');
-    const speedEl = document.getElementById('speed');
-    const powerupIndicatorEl = document.getElementById('powerupIndicator');
-
-  // Powerup Typen
-  const POWERUP_TYPES = {
-    SHIELD: 'shield',
-    SPEED_BOOST: 'speedBoost',
-    MAGNET: 'magnet'
-  };
-
-  // Powerup-Konfiguration
-  const POWERUP_CONFIG = {
-    [POWERUP_TYPES.SHIELD]: {
-      duration: 8,
-      color: 'rgba(127,209,255,0.9)',
-      icon: '🛡️',
-      class: 'shield'
-    },
-    [POWERUP_TYPES.SPEED_BOOST]: {
-      duration: 6,
-      color: 'rgba(255,127,127,0.9)',
-      icon: '🔥',
-      class: 'speed'
-    },
-    [POWERUP_TYPES.MAGNET]: {
-      duration: 10,
-      color: 'rgba(255,200,100,0.9)',
-      icon: '🧲',
-      class: 'magnet'
-    }
-  };
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('start');
+  const levelEl = document.getElementById('level');
+  const movesEl = document.getElementById('moves');
+  const bestEl = document.getElementById('best');
 
   let DPR = Math.max(1, window.devicePixelRatio || 1);
+  
   const state = {
     running: false,
-    paused: false,
-    t: 0,
-    score: 0,
-    best: Number(localStorage.getItem('dragonfly-best') || 0),
-    speed: 1,
-    baseSpeed: 320, // px/s world scroll speed
-    worldOffset: 0,
-    activePowerups: {}, // Aktive Powerups speichern
-    playerName: '',
-    topDown: false,
-    topDownStartScore: 0
+    currentLevel: 0,
+    moves: 0,
+    history: [], // For undo
+    bestMoves: {} // Store best moves per level
   };
-  bestEl.textContent = state.best;
 
-  const world = { w: 960, h: 540, riverY: 0.45 };
+  // Load best moves from localStorage
+  try {
+    const saved = localStorage.getItem('solar-best-moves');
+    if (saved) state.bestMoves = JSON.parse(saved);
+  } catch(e) {}
+
+  // Grid size
+  const GRID_SIZE = 40;
+  
+  // Tile types
+  const TILES = {
+    EMPTY: 0,
+    ROOF: 1,
+    WINDOW: 2,
+    CHIMNEY: 3,
+    SHADOW: 4,
+    TARGET: 5,
+    PANEL: 6,
+    PANEL_ON_TARGET: 7,
+    PLAYER: 8
+  };
+
+  // Level definitions - 5 levels with increasing difficulty
+  const LEVELS = [
+    // Level 1 - Tutorial (5x5)
+    {
+      name: "Einfacher Start",
+      grid: [
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 1, 5, 1, 0, 0],
+        [0, 0, 1, 4, 1, 1, 1],
+        [1, 1, 1, 6, 4, 5, 1],
+        [1, 5, 8, 6, 1, 1, 1],
+        [1, 1, 1, 6, 1, 0, 0],
+        [0, 0, 1, 1, 1, 0, 0]
+      ]
+    },
+    // Level 2 - Windows and Chimney (6x6)
+    {
+      name: "Hindernisse",
+      grid: [
+        [0, 0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 5, 1, 2, 1, 0],
+        [0, 0, 1, 4, 1, 4, 1, 0],
+        [1, 1, 1, 6, 3, 6, 1, 1],
+        [1, 5, 4, 6, 8, 4, 5, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    // Level 3 - Shadow maze (7x7)
+    {
+      name: "Schatten-Labyrinth",
+      grid: [
+        [0, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 1, 4, 4, 3, 4, 2, 1, 0],
+        [1, 1, 4, 6, 1, 6, 4, 1, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 4, 6, 1, 8, 1, 6, 4, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 1, 4, 4, 2, 4, 4, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    // Level 4 - Complex puzzle (8x8)
+    {
+      name: "Dachgarten",
+      grid: [
+        [0, 0, 1, 1, 1, 1, 1, 0, 0],
+        [0, 0, 1, 5, 4, 5, 1, 0, 0],
+        [0, 1, 1, 2, 1, 2, 1, 1, 0],
+        [0, 1, 4, 6, 1, 6, 4, 1, 0],
+        [1, 1, 1, 1, 3, 1, 1, 1, 1],
+        [1, 4, 6, 1, 8, 1, 6, 4, 1],
+        [1, 5, 1, 1, 1, 1, 1, 5, 1],
+        [1, 1, 1, 2, 4, 2, 1, 1, 1],
+        [0, 0, 1, 1, 1, 1, 1, 0, 0]
+      ]
+    },
+    // Level 5 - Master challenge (9x9)
+    {
+      name: "Meister-Herausforderung",
+      grid: [
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 1, 1, 4, 2, 4, 1, 1, 0, 0],
+        [0, 1, 1, 5, 1, 3, 1, 5, 1, 1, 0],
+        [0, 1, 4, 6, 1, 4, 1, 6, 4, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 4, 6, 1, 8, 1, 6, 4, 2, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 4, 6, 1, 4, 1, 6, 4, 1, 0],
+        [0, 1, 1, 5, 1, 3, 1, 5, 1, 1, 0],
+        [0, 0, 1, 1, 4, 2, 4, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0]
+      ]
+    }
+  ];
+
+  let currentGrid = [];
+  let player = { x: 0, y: 0 };
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
-    world.w = Math.floor(rect.width * DPR);
-    world.h = Math.floor(rect.height * DPR);
-    canvas.width = world.w; canvas.height = world.h;
+    canvas.width = Math.floor(rect.width * DPR);
+    canvas.height = Math.floor(rect.height * DPR);
   }
-  resize(); addEventListener('resize', resize);
+  resize();
+  addEventListener('resize', resize);
 
-  // Input
-  const input = { flap: 0, left: 0, right: 0 }; let justFlapped = false;
-  function onPress() { input.flap = 1; justFlapped = true; }
-  function onRelease() { input.flap = 0; }
+  // Input handling
+  const keys = {};
   addEventListener('keydown', (e) => {
-    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) { e.preventDefault(); onPress(); }
-    else if (state.topDown && e.code === 'ArrowLeft') { e.preventDefault(); input.left = 1; }
-    else if (state.topDown && e.code === 'ArrowRight') { e.preventDefault(); input.right = 1; }
-    else if (e.code === 'KeyP') togglePause();
-    else if (e.code === 'Enter' && !state.running) start();
+    keys[e.code] = true;
+    
+    if (!state.running) {
+      if (e.code === 'Enter') start();
+      return;
+    }
+
+    let moved = false;
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      moved = movePlayer(0, -1);
+      e.preventDefault();
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      moved = movePlayer(0, 1);
+      e.preventDefault();
+    } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      moved = movePlayer(-1, 0);
+      e.preventDefault();
+    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      moved = movePlayer(1, 0);
+      e.preventDefault();
+    } else if (e.code === 'KeyR') {
+      resetLevel();
+      e.preventDefault();
+    } else if (e.code === 'KeyZ') {
+      undo();
+      e.preventDefault();
+    }
+
+    if (moved) {
+      render();
+      checkWin();
+    }
   });
+
   addEventListener('keyup', (e) => {
-    if (!state.topDown && (e.code === 'Space' || e.code === 'ArrowUp')) onRelease();
-    else if (state.topDown && e.code === 'ArrowLeft') { input.left = 0; }
-    else if (state.topDown && e.code === 'ArrowRight') { input.right = 0; }
+    keys[e.code] = false;
   });
-  canvas.addEventListener('pointerdown', onPress);
-  addEventListener('pointerup', onRelease);
-  startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
 
-  function togglePause() {
-    if (!state.running) return;
-    state.paused = !state.paused;
-    overlay.style.display = state.paused ? 'grid' : 'none';
-    if (!state.paused) lastTs = performance.now();
-  }
-
-  // Entities
-  function rand(min, max) { return Math.random() * (max - min) + min; }
-  const player = { 
-    x: 0, y: 0, vx: 0, vy: 0, 
-    r: 18, g: 1400, flapVel: -520, maxVy: 680, 
-    invuln: 0,
-    hasShield: false, 
-    hasSpeedBoost: false,
-    hasMagnet: false 
-  };
-  const obstacles = []; const pickUps = []; const powerups = []; const clouds = [];
-
-  function reset() {
-    state.t = 0; state.score = 0; state.speed = 1; state.worldOffset = 0; state.topDown = false; state.baseSpeed = 320; state.topDownStartScore = 0;
-    state.activePowerups = {};
-    speedEl.textContent = '1.0x';
-    obstacles.length = 0; pickUps.length = 0; powerups.length = 0;
-    player.x = world.w * 0.22; player.y = world.h * 0.5; 
-    player.vx = 0; player.vy = 0; player.invuln = 0;
-    player.hasShield = false; player.hasSpeedBoost = false; player.hasMagnet = false;
-    spawnTimer = 0; orbTimer = 1.5; powerupTimer = 5;
-    lastObstacleTime = 0;
-    powerupIndicatorEl.innerHTML = '';
-    
-    // Wolken initialisieren
-    clouds.length = 0;
-    initClouds();
-  }
-
-  function initClouds() {
-    // 5-10 zufällige Wolken erstellen
-    const numClouds = 5 + Math.floor(Math.random() * 6);
-    for (let i = 0; i < numClouds; i++) {
-      clouds.push({
-        x: Math.random() * world.w * 1.5, // Über die gesamte Breite + etwas mehr verteilen
-        y: 50 + Math.random() * 120,      // Höhe über den Bergen
-        size: 0.4 + Math.random() * 0.6,  // Zufällige Größe
-        speed: 0.05 + Math.random() * 0.1, // Unterschiedliche Geschwindigkeiten
-        opacity: 0.6 + Math.random() * 0.3 // Unterschiedliche Transparenz
-      });
-    }
-  }
-
-  // Spawning
-  let spawnTimer = 0; let orbTimer = 1.5; let powerupTimer = 5;
-  let lastObstacleTime = 0; // Vermeidung von zu dicht aufeinanderfolgenden Hindernissen
-  function spawnObstacle() {
-    const river = world.h * world.riverY;
-    // 3 Hindernistypen: vertikale Hindernisse, Seerosen und Vögel
-    const rnd = Math.random();
-    const type = rnd < 0.5 ? 'reed' : (rnd < 0.8 ? 'waterLily' : 'bird');
-    
-    if (type === 'reed') {
-      const gap = rand(180, 240); // Größere Lücke zwischen den Zahlenreihen
-      const center = rand(river - 60, river + 60);
-      const thickness = rand(25, 35); // Breite der Zahlenreihen-Wände
-      obstacles.push({ type: 'reed', x: world.w + 40, width: thickness, gap, center, passed: false });
-    } else if (type === 'waterLily') {
-      // Größenbereich für Seerosen
-      const size = rand(40, 65);
-      const y = river + rand(70, 120);
-      obstacles.push({ type: 'waterLily', x: world.w + 40, y, size, passed: false });
-    } else if (type === 'bird') {
-      // Vögel erscheinen im oberen Bereich
-      const size = rand(28, 40);
-      const y = rand(river - 180, river - 40);
-      // Vögel bewegen sich auch vertikal
-      const vertSpeed = rand(30, 80) * (Math.random() > 0.5 ? 1 : -1);
-      const vertAmp = rand(20, 60);
-      obstacles.push({ 
-        type: 'bird', 
-        x: world.w + 40, 
-        y, 
-        size, 
-        passed: false,
-        vertSpeed,
-        vertAmp,
-        initY: y
-      });
-    }
-  }
-  
-  function spawnOrb() {
-    const river = world.h * world.riverY;
-    const y = rand(river - 110, river + 110);
-    const rnd = Math.random();
-    let type, value;
-    if (rnd < 0.6) { type = 'bronze'; value = 5; }
-    else if (rnd < 0.9) { type = 'silver'; value = 10; }
-    else { type = 'gold'; value = 40; }
-    pickUps.push({ x: world.w + 40, y, r: 10, type, value });
-  }
-
-  function spawnPowerup() {
-    const river = world.h * world.riverY;
-    const y = rand(river - 140, river - 20); // Powerups erscheinen eher im oberen Bereich
-    
-    // Powerup-Typ zufällig auswählen
-    const types = Object.values(POWERUP_TYPES);
-    const type = types[Math.floor(Math.random() * types.length)];
-    
-    powerups.push({ 
-      type,
-      x: world.w + 40, 
-      y, 
-      r: 15
-    });
-  }
-
-  // Rendering helpers
-  function drawBackground() {
-    if (state.topDown) {
-      drawBackgroundTopDown();
-      return;
-    }
-
-    const w = world.w, h = world.h; const p = state.worldOffset * 0.15; ctx.save();
-
-    // Himmel - leichter Verlauf
-    const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.36);
-    skyGradient.addColorStop(0, '#a7d8f8');
-    skyGradient.addColorStop(1, '#d7eeff');
-    ctx.fillStyle = skyGradient;
-    ctx.fillRect(0, 0, w, h * 0.36);
-
-    // Wolken zeichnen
-    for (const cloud of clouds) {
-      drawCloud(cloud.x, cloud.y, cloud.size, cloud.opacity);
-    }
-
-    if (state.score < 150) {
-      // Mountains - SWICA Türkistöne
-      for (let i = 0; i < 2; i++) {
-        const baseY = h * (0.36 + i * 0.05);
-        ctx.fillStyle = i === 0 ? '#00aaa0' : '#008989';
-        ctx.beginPath();
-        const offset = (p * (i + 1)) % w;
-        ctx.moveTo(-offset, baseY);
-        for (let x = -offset; x <= w - offset + 200; x += 200) {
-          const peakHeight = 80 + i * 30 + Math.sin((x + i * 123) * 0.01) * 20;
-          ctx.lineTo(x + 100, baseY - peakHeight);
-          ctx.lineTo(x + 200, baseY);
-        }
-        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
-      }
-    } else if (state.score < 250) {
-      // City skyline
-      for (let i = 0; i < 2; i++) {
-        const baseY = h * (0.36 + i * 0.05);
-        ctx.fillStyle = i === 0 ? '#7a8a8f' : '#607074';
-        const offset = (p * (i + 1)) % w;
-        for (let x = -offset; x < w + 120; x += 120) {
-          const bWidth = 60 + i * 20;
-          const bHeight = 80 + i * 40 + Math.sin((x + i * 45) * 0.02) * 20;
-          ctx.fillRect(x, baseY - bHeight, bWidth, bHeight);
-        }
-      }
-    } else {
-      // Desert with dunes
-      const groundY = h * world.riverY;
-      ctx.fillStyle = '#edc76c';
-      ctx.fillRect(0, groundY, w, h - groundY);
-      for (let i = 0; i < 2; i++) {
-        const baseY = h * (0.36 + i * 0.05);
-        ctx.fillStyle = i === 0 ? '#e0b55b' : '#d1a14a';
-        ctx.beginPath();
-        const offset = (p * (i + 1)) % w;
-        ctx.moveTo(-offset, baseY);
-        for (let x = -offset; x <= w - offset + 200; x += 200) {
-          const duneHeight = 40 + i * 20 + Math.sin((x + i * 87) * 0.01) * 15;
-          ctx.lineTo(x + 100, baseY - duneHeight);
-          ctx.lineTo(x + 200, baseY);
-        }
-        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
-      }
-      // Cacti
-      const cactusOffset = (state.worldOffset * 0.6) % 160;
-      for (let x = -cactusOffset; x < w + 160; x += 160) drawCactus(x, groundY, 1);
-      ctx.restore();
-      return;
-    }
-    // River
-    const riverY = h * world.riverY; ctx.fillStyle = '#1a6aa1'; ctx.fillRect(0, riverY, w, h - riverY);
-    ctx.globalAlpha = 0.35; ctx.fillStyle = '#79d3ff';
-    const waveOffset = (state.worldOffset * 0.6) % 40;
-    for (let x = -waveOffset; x < w + 50; x += 40) {
-      ctx.fillRect(x, riverY + 24, 24, 3);
-      ctx.fillRect(x + 10, riverY + 52, 18, 3);
-      ctx.fillRect(x - 6, riverY + 84, 28, 3);
-    }
-    ctx.globalAlpha = 1;
-    // Foreground number sequences (parallax)
-    const reedOffset = (state.worldOffset * 1.2) % 80;
-    for (let x = -reedOffset; x < w + 80; x += 80) drawReedCluster(x, riverY + 6, 1);
-    ctx.restore();
-  }
-
-  function drawBackgroundTopDown() {
-    const w = world.w, h = world.h;
-    ctx.fillStyle = '#6ab04c'; // Parkrasen
-    ctx.fillRect(0, 0, w, h);
-
-    const offset = (state.worldOffset * 0.3) % 80;
-    for (let x = -offset; x < w + 80; x += 80) {
-      for (let y = 40; y < h; y += 80) {
-        drawFlower(x + 40, y);
-      }
-    }
-  }
-
-  function drawFlower(x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = '#ffb3c1';
-    for (let i = 0; i < 5; i++) {
-      const angle = i * (Math.PI * 2 / 5);
-      ctx.beginPath();
-      ctx.ellipse(Math.cos(angle) * 5, Math.sin(angle) * 5, 4, 7, angle, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#ffd700';
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawCactus(x, baseY, scale) {
-    ctx.save();
-    ctx.translate(x, baseY);
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#2f8f2f';
-    // main trunk
-    ctx.fillRect(-5, -40, 10, 40);
-    // left arm
-    ctx.fillRect(-15, -30, 10, 5);
-    ctx.fillRect(-20, -45, 5, 20);
-    // right arm
-    ctx.fillRect(5, -25, 10, 5);
-    ctx.fillRect(15, -40, 5, 20);
-    // rounded top
-    ctx.beginPath();
-    ctx.arc(0, -40, 5, Math.PI, 0);
-    ctx.fill();
-    ctx.restore();
-  }
-  
-  function drawReedCluster(x, baseY, scale) {
-    ctx.save(); ctx.translate(x, baseY); ctx.scale(scale, scale);
-    
-    // Zufällige Zahlenreihen statt Gräser
-    ctx.font = '14px monospace';
-    ctx.textAlign = 'center';
-    
-    // Für jede "Spalte" im ehemaligen Grascluster
-    for (let i = 0; i < 5; i++) {
-      const h = 50 + i * 8; // Höhe beibehalten für ähnliche Verteilung
-      const column = i * 10; // Horizontale Position mit etwas mehr Abstand
-      
-      // Verwende eine Pseudozufallszahl basierend auf der Position
-      // So bleiben die Zahlen bei jedem Durchlauf gleich
-      const seed = Math.sin(x * 0.1 + i * 0.3) * 10000;
-      
-      // Zeichne 5-8 Zahlen in einer Säule
-      const numDigits = 5 + Math.floor(Math.abs(Math.sin(seed * 0.4)) * 3);
-      for (let j = 0; j < numDigits; j++) {
-        // Pseudozufällige Zahl zwischen 0-9, aber deterministisch pro Position
-        const digit = Math.floor(Math.abs(Math.sin(seed + j * 0.7) * 10)) % 10;
-        
-        // Vertikale Position - besser verteilt von unten nach oben
-        const yPos = -5 - (h * j / (numDigits - 1));
-        
-        // Farben variieren für visuellen Effekt
-        const hue = Math.abs(Math.sin(seed + j * 0.5) * 60) + 140; // Türkis bis Blautöne
-        const lightness = 40 + Math.abs(Math.sin(seed + j * 0.3) * 30);
-        ctx.fillStyle = `hsla(${hue}, 70%, ${lightness}%, 0.85)`;
-        
-        // Zeichne die Zahl
-        ctx.fillText(digit.toString(), column, yPos);
-      }
-    }
-    
-    ctx.restore();
-  }
-
-  function drawStripedRect(x, y, w, h, withText = false) {
-    const stripe = 10;
-    for (let i = 0; i < h; i += stripe) {
-      ctx.fillStyle = (i / stripe) % 2 === 0 ? '#ff5555' : '#ffffff';
-      ctx.fillRect(x, y + i, w, Math.min(stripe, h - i));
-    }
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-
-    if (withText && state.topDown) {
-      ctx.save();
-      ctx.translate(x + w / 2, y + h / 2);
-      ctx.rotate(Math.PI / 2);
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('DRAGONFLY', 0, 0);
-      ctx.restore();
-    }
-  }
-
-  function drawCityBarrier(o) {
-    const topH = Math.max(0, o.center - o.gap/2);
-    const bottomY = o.center + o.gap/2;
-    drawStripedRect(o.x, 0, o.width, topH);
-    drawStripedRect(o.x, bottomY, o.width, world.h - bottomY);
-  }
-
-  function drawDragonflyBarrier(o) {
-    const topH = Math.max(0, o.center - o.gap / 2);
-    const bottomY = o.center + o.gap / 2;
-    drawStripedRect(o.x, 0, o.width, topH, true);
-    drawStripedRect(o.x, bottomY, o.width, world.h - bottomY, true);
-  }
-
-  function drawSignRect(x, y, w, h) {
-    ctx.fillStyle = '#f2c94c';
-    ctx.strokeStyle = '#b98b2c';
-    ctx.lineWidth = 2;
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeRect(x, y, w, h);
-    ctx.save();
-    ctx.translate(x + w/2, y + h/2);
-    ctx.rotate(-Math.PI/2);
-    ctx.fillStyle = '#000';
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Vorsicht', 0, -5);
-    ctx.fillText('Wüste', 0, 15);
-    ctx.restore();
-  }
-
-  function drawDesertSign(o) {
-    const topH = Math.max(0, o.center - o.gap/2);
-    const bottomY = o.center + o.gap/2;
-    drawSignRect(o.x, 0, o.width, topH);
-    drawSignRect(o.x, bottomY, o.width, world.h - bottomY);
-  }
-
-  function drawWaterLily(x, y, size) {
-    ctx.save();
-    ctx.translate(x, y);
-
-    if (state.score < 150) {
-      drawWaterLilyShape(size);
-    } else if (state.score < 250) {
-      if (state.topDown) drawScooterTop(size); else drawScooter(size);
-    } else {
-      if (state.topDown) drawLionTop(size); else drawLion(size);
-    }
-
-    ctx.restore();
-  }
-
-  function drawWaterLilyShape(size) {
-    // Schatten unter der Seerose
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 5;
-    ctx.beginPath();
-    ctx.ellipse(0, 5, size*0.9, size*0.3, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fill();
-    ctx.shadowColor = 'transparent';
-
-    // Seerosenblaetter (3-4 Blätter)
-    const numLeaves = 3 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < numLeaves; i++) {
-      const angle = (i / numLeaves) * Math.PI * 2;
-      const leafSize = size * (0.7 + Math.random() * 0.3);
-
-      ctx.save();
-      ctx.rotate(angle);
-
-      // Blattform
-      ctx.fillStyle = '#1e8c39';
-      ctx.beginPath();
-      ctx.ellipse(leafSize*0.4, 0, leafSize*0.6, leafSize*0.4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Blattadern
-      ctx.strokeStyle = '#156626';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(leafSize*0.7, 0);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(leafSize*0.3, -leafSize*0.2);
-      ctx.quadraticCurveTo(leafSize*0.5, 0, leafSize*0.3, leafSize*0.2);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    // Seerose Blüte
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(0, 0, size*0.25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Blütenblätter
-    const numPetals = 8;
-    for (let i = 0; i < numPetals; i++) {
-      const angle = (i / numPetals) * Math.PI * 2;
-      const petalLength = size * 0.25;
-
-      ctx.save();
-      ctx.rotate(angle);
-      ctx.translate(size*0.2, 0);
-
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, petalLength, petalLength*0.4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // Blütenmitte
-    ctx.fillStyle = '#ffda0d';
-    ctx.beginPath();
-    ctx.arc(0, 0, size*0.12, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawScooter(size) {
-    const scale = size / 60;
-    ctx.save();
-    ctx.scale(scale, scale);
-
-    // Räder
-    ctx.fillStyle = '#555';
-    ctx.beginPath();
-    ctx.arc(-15, 18, 10, 0, Math.PI * 2);
-    ctx.arc(18, 18, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Karosserie (Vespa-Stil) in SWICA Türkis
-    ctx.fillStyle = '#00b2a9';
-    ctx.beginPath();
-    ctx.moveTo(-20, 8);
-    ctx.quadraticCurveTo(-22, -12, -5, -15);
-    ctx.quadraticCurveTo(25, -20, 25, 5);
-    ctx.lineTo(25, 18);
-    ctx.lineTo(-20, 18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Sitz
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-5, -17, 15, 5);
-
-    // Lenker
-    ctx.fillStyle = '#555';
-    ctx.fillRect(8, -25, 20, 4);
-
-    ctx.restore();
-  }
-
-  function drawLion(size) {
-    const scale = size / 60;
-    ctx.save();
-    ctx.scale(scale, scale);
-
-    // Körper
-    ctx.fillStyle = '#d8a81f';
-    ctx.beginPath();
-    ctx.ellipse(0, 10, 30, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Mähne
-    ctx.fillStyle = '#a05a2c';
-    ctx.beginPath();
-    ctx.arc(0, -20, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Kopf
-    ctx.fillStyle = '#d8a81f';
-    ctx.beginPath();
-    ctx.arc(0, -20, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Gesicht
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(-5, -22, 2, 0, Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(5, -22, 2, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle = '#a05a2c';
-    ctx.beginPath();
-    ctx.arc(0, -17, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Beine
-    ctx.fillStyle = '#d8a81f';
-    ctx.fillRect(-20, 20, 8, 15);
-    ctx.fillRect(12, 20, 8, 15);
-    ctx.strokeRect(-20, 20, 8, 15);
-    ctx.strokeRect(12, 20, 8, 15);
-
-    // Schwanz
-    ctx.strokeStyle = '#d8a81f';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(30, 10);
-    ctx.quadraticCurveTo(40, 0, 45, 15);
-    ctx.stroke();
-    ctx.fillStyle = '#a05a2c';
-    ctx.beginPath();
-    ctx.arc(45, 15, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    
-    ctx.restore();
-  }
-
-  function drawScooterTop(size) {
-    const scale = size / 60;
-    ctx.save();
-    ctx.scale(scale, scale);
-
-    // Körper
-    ctx.fillStyle = '#00b2a9';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 40, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Sitz
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-10, -5, 20, 10);
-
-    // Lenker
-    ctx.fillStyle = '#555';
-    ctx.fillRect(-15, -40, 30, 6);
-
-    ctx.restore();
-  }
-
-  function drawLionTop(size) {
-    const scale = size / 60;
-    ctx.save();
-    ctx.scale(scale, scale);
-
-    ctx.fillStyle = '#a05a2c';
-    ctx.beginPath();
-    ctx.arc(0, 0, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#d8a81f';
-    ctx.beginPath();
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(-8, -5, 3, 0, Math.PI * 2);
-    ctx.arc(8, -5, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-  
-  function drawStone(x, y, size) {
-    // Vergrößere die Steine um 40%
-    size = size * 1.4;
-    
-    ctx.save(); 
-    ctx.translate(x, y); 
-    
-    // Hauptform des Steins
-    ctx.fillStyle = '#5f6d7a';
-    ctx.beginPath(); 
-    ctx.moveTo(-size*0.6, 0);
-    ctx.quadraticCurveTo(-size*0.2, -size*0.6, size*0.5, -size*0.3);
-    ctx.quadraticCurveTo(size*0.7, 0, -size*0.6, 0); 
-    ctx.fill();
-    
-    // Zusätzliche Details für den Stein
-    // Dunkle Konturen für Tiefe
-    ctx.strokeStyle = '#3a424a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-size*0.5, -size*0.1);
-    ctx.lineTo(-size*0.3, -size*0.4);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-size*0.2, -size*0.3);
-    ctx.lineTo(size*0.4, -size*0.2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(size*0.5, -size*0.3);
-    ctx.lineTo(size*0.7, 0);
-    ctx.stroke();
-    
-    ctx.restore();
-  }
-
-  // Orb zeichnen (Mücken)
-  function drawOrb(o, t) {
-    ctx.save();
-    ctx.translate(o.x, o.y + Math.sin(t * 6 + o.x*0.02) * 6);
-    const colors = {
-      bronze: { inner: 'rgba(205,127,50,0.9)', outer: 'rgba(205,127,50,0)', core: '#ffe0b2' },
-      silver: { inner: 'rgba(192,192,192,0.9)', outer: 'rgba(192,192,192,0)', core: '#f2f2f2' },
-      gold:   { inner: 'rgba(255,215,0,0.9)',   outer: 'rgba(255,215,0,0)',   core: '#fff5b5' }
-    };
-    const c = colors[o.type] || colors.bronze;
-    const g = ctx.createRadialGradient(0,0,0,0,0,20);
-    g.addColorStop(0, c.inner);
-    g.addColorStop(1, c.outer);
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0,0,18,0,Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = c.core;
-    ctx.beginPath();
-    ctx.arc(0,0,6,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Vogel als neues Hindernis
-  function drawBird(x, y, size, t) {
-    ctx.save();
-    ctx.translate(x, y);
-
-    const wingFlap = Math.sin(t * 15) * 0.5;
-    if (state.topDown) {
-      if (state.score >= 150 && state.score < 250) {
-        drawSeagullTop(size, wingFlap);
-      } else {
-        drawDefaultBirdTop(size, wingFlap);
-      }
-    } else {
-      if (state.score >= 150 && state.score < 250) {
-        drawSeagullBody(size, wingFlap);
-      } else {
-        drawDefaultBirdBody(size, wingFlap);
-      }
-    }
-
-    ctx.restore();
-  }
-
-  function drawDefaultBirdBody(size, wingFlap) {
-    // Körper
-    ctx.fillStyle = '#78552b';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Kopf
-    ctx.fillStyle = '#94683a';
-    ctx.beginPath();
-    ctx.arc(size*0.5, -size*0.3, size*0.3, 0, Math.PI*2);
-    ctx.fill();
-
-    // Schnabel
-    ctx.fillStyle = '#e09f3e';
-    ctx.beginPath();
-    ctx.moveTo(size*0.8, -size*0.3);
-    ctx.lineTo(size*1.2, -size*0.35);
-    ctx.lineTo(size*0.8, -size*0.2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Auge
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(size*0.6, -size*0.35, size*0.08, 0, Math.PI*2);
-    ctx.fill();
-
-    // Flügel oben
-    ctx.fillStyle = '#8b653d';
-    ctx.save();
-    ctx.translate(0, -size*0.2);
-    ctx.rotate(wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // Flügel unten
-    ctx.fillStyle = '#8b653d';
-    ctx.save();
-    ctx.translate(0, size*0.2);
-    ctx.rotate(-wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.8, size*0.3, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // Schwanz
-    ctx.fillStyle = '#94683a';
-    ctx.beginPath();
-    ctx.moveTo(-size*0.6, 0);
-    ctx.lineTo(-size*1.2, -size*0.2);
-    ctx.lineTo(-size*1.2, size*0.2);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  function drawSeagullBody(size, wingFlap) {
-    // Körper
-    ctx.fillStyle = '#f0f0f0';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.7, size*0.4, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Kopf
-    ctx.fillStyle = '#f0f0f0';
-    ctx.beginPath();
-    ctx.arc(size*0.5, -size*0.3, size*0.25, 0, Math.PI*2);
-    ctx.fill();
-
-    // Schnabel
-    ctx.fillStyle = '#ffce00';
-    ctx.beginPath();
-    ctx.moveTo(size*0.7, -size*0.3);
-    ctx.lineTo(size*1.1, -size*0.28);
-    ctx.lineTo(size*0.7, -size*0.22);
-    ctx.closePath();
-    ctx.fill();
-
-    // Auge
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(size*0.55, -size*0.35, size*0.07, 0, Math.PI*2);
-    ctx.fill();
-
-    // Flügel oben
-    ctx.fillStyle = '#d0d0d0';
-    ctx.save();
-    ctx.translate(0, -size*0.1);
-    ctx.rotate(wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // Flügel unten
-    ctx.fillStyle = '#d0d0d0';
-    ctx.save();
-    ctx.translate(0, size*0.1);
-    ctx.rotate(-wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size*0.9, size*0.3, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.restore();
-
-    // Schwanz
-    ctx.fillStyle = '#d0d0d0';
-    ctx.beginPath();
-    ctx.moveTo(-size*0.6, 0);
-    ctx.lineTo(-size*1.0, -size*0.2);
-    ctx.lineTo(-size*1.0, size*0.2);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  function drawDefaultBirdTop(size, wingFlap) {
-    ctx.fillStyle = '#94683a';
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#8b653d';
-    ctx.save();
-    ctx.rotate(wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.rotate(-wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size * 1.4, size * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = '#e09f3e';
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.7, size * 0.2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  function drawSeagullTop(size, wingFlap) {
-    ctx.fillStyle = '#f0f0f0';
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#d0d0d0';
-    ctx.save();
-    ctx.rotate(wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.rotate(-wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, size * 1.5, size * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = '#ffce00';
-    ctx.beginPath();
-    ctx.arc(0, -size * 0.7, size * 0.18, 0, Math.PI * 2);
-
-    ctx.restore();
-
-    // Schwanz
-    ctx.fillStyle = '#d0d0d0';
-    ctx.beginPath();
-    ctx.moveTo(-size*0.6, 0);
-    ctx.lineTo(-size*1.0, -size*0.2);
-    ctx.lineTo(-size*1.0, size*0.2);
-    ctx.closePath();
-
-    ctx.fill();
-  }
-
-  // Powerup zeichnen
-  function drawPowerup(p, t) {
-    const config = POWERUP_CONFIG[p.type];
-    const wobble = Math.sin(t * 6 + p.x*0.02) * 6;
-    ctx.save(); 
-    ctx.translate(p.x, p.y + wobble);
-    
-    // Äußere Leuchteffekt
-    const g = ctx.createRadialGradient(0,0,0,0,0,25);
-    g.addColorStop(0, config.color);
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0,0,22,0,Math.PI*2);
-    ctx.fill();
-
-    // Innerer Kern
-    ctx.fillStyle = config.color.replace('0.9', '1');
-    ctx.beginPath();
-    ctx.arc(0,0,10,0,Math.PI*2);
-    ctx.fill();
-
-    // Glanzeffekt
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.beginPath();
-    ctx.arc(-3,-3,3,0,Math.PI*2);
-    ctx.fill();
-
-    // Icon in der Mitte zeichnen
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(config.icon, 0, 0);
-
-    ctx.restore();
-  }
-
-  // Dragonfly with X-shaped wings and head-forward alignment
-  function drawDragonfly(p, t) {
-    ctx.save();
-    ctx.translate(p.x, p.y);
-
-    const vx = state.baseSpeed * state.speed; // approximate forward velocity
-    const angle = Math.atan2(p.vy, vx);
-    ctx.rotate(angle);
-
-    const thoraxRadius = 6;
-    const abdomenLen = 46;
-    const headR = 8;
-
-    const flapFore = Math.sin(t * 36) * 0.12;      // front pair
-    const flapHind = Math.sin(t * 36 + 1.2) * 0.12; // rear pair with phase offset
-
-    // Spine
-    ctx.strokeStyle = '#7fe0ff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-abdomenLen, 0);
-    ctx.lineTo(0, 0);
-    ctx.lineTo(headR + 6, 0);
-    ctx.stroke();
-
-    // Thorax
-    ctx.fillStyle = '#39d4ff';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, thoraxRadius + 2, thoraxRadius, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Abdomen segments (tapered)
-    for (let i = 0; i < 7; i++) {
-      const x = -i * (abdomenLen / 7);
-      const w = Math.max(2, 5 - i * 0.6);
-      ctx.fillStyle = i % 2 ? '#1ec4ff' : '#3fd7ff';
-      ctx.fillRect(x - 2, -w, 4, w * 2);
-    }
-
-    // Head (front)
-    ctx.fillStyle = '#a0ffcf';
-    ctx.beginPath(); ctx.arc(headR + 6, 0, headR, 0, Math.PI * 2); ctx.fill();
-    // Eyes
-    ctx.fillStyle = '#003b4a';
-    ctx.beginPath(); ctx.arc(headR + 10, -3, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(headR + 10,  3, 3, 0, Math.PI * 2); ctx.fill();
-
-    // Wings (X-shape)
-    const wingFill = 'rgba(255,255,255,0.5)';
-    const wingStroke = 'rgba(255,255,255,0.85)';
-
-    function wing(angle, len, spread, flap) {
-      ctx.save();
-      ctx.rotate(angle + flap);
-      ctx.fillStyle = wingFill; ctx.strokeStyle = wingStroke; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(len * 0.42, -spread, len, 0);
-      ctx.quadraticCurveTo(len * 0.42,  spread, 0, 0);
-      ctx.fill(); ctx.stroke();
-      // simple veins
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(len * 0.65, 0);
-      ctx.moveTo(len * 0.28, -spread * 0.55); ctx.lineTo(len * 0.6, -spread * 0.15);
-      ctx.moveTo(len * 0.28,  spread * 0.55); ctx.lineTo(len * 0.6,  spread * 0.15);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // Forewings (forward-angled: \ /)
-    const foreLen = 58, foreSpread = 12;
-    wing(+Math.PI/4, foreLen, foreSpread,  flapFore);
-    wing(-Math.PI/4, foreLen, foreSpread, -flapFore);
-
-    // Hindwings (backward-angled: / \)
-    const hindLen = 54, hindSpread = 13;
-    wing(Math.PI - Math.PI/4, hindLen, hindSpread,  flapHind);
-    wing(-Math.PI + Math.PI/4, hindLen, hindSpread, -flapHind);
-
-    // Root highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, Math.PI * 2); ctx.fill();
-
-    ctx.restore();
-  }
-
-  function drawDragonflyTop(p, t) {
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(Math.PI / 2);
-
-    const wingFlap = Math.sin(t * 30) * 0.25;
-
-    // Body
-    ctx.fillStyle = '#39d4ff';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 6, 20, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Head
-    ctx.fillStyle = '#a0ffcf';
-    ctx.beginPath();
-    ctx.arc(0, -14, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Wings
-    const wingFill = 'rgba(255,255,255,0.5)';
-    const wingStroke = 'rgba(255,255,255,0.85)';
-    ctx.fillStyle = wingFill;
-    ctx.strokeStyle = wingStroke;
-    ctx.lineWidth = 1;
-
-    ctx.save();
-    ctx.rotate(wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.rotate(-wingFlap);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 30, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.restore();
-  }
-
-  function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
-    const nx = Math.max(rx, Math.min(cx, rx + rw));
-    const ny = Math.max(ry, Math.min(cy, ry + rh));
-    const dx = cx - nx, dy = cy - ny; return (dx*dx + dy*dy) <= r*r;
-  }
-
-  // Powerup aktivieren
-  function activatePowerup(type) {
-    const config = POWERUP_CONFIG[type];
-    
-    // Wenn dieser Powerup-Typ bereits aktiv ist, Zeit verlängern
-    if (state.activePowerups[type]) {
-      state.activePowerups[type].timeLeft = config.duration;
-      const timerEl = document.querySelector(`#powerup-${type} .powerup-timer`);
-      if (timerEl) timerEl.textContent = Math.ceil(config.duration);
-      return;
-    }
-    
-    // Powerup speichern
-    state.activePowerups[type] = {
-      timeLeft: config.duration,
-      config: config
-    };
-    
-    // Spieler-Status anpassen
-    switch(type) {
-      case POWERUP_TYPES.SHIELD:
-        player.hasShield = true;
-        break;
-      case POWERUP_TYPES.SPEED_BOOST:
-        player.hasSpeedBoost = true;
-        state.baseSpeed *= 1.4; // 40% schneller
-        break;
-      case POWERUP_TYPES.MAGNET:
-        player.hasMagnet = true;
-        break;
-    }
-    
-    // Powerup-Anzeige erstellen
-    const indicatorEl = document.createElement('div');
-    indicatorEl.id = `powerup-${type}`;
-    indicatorEl.className = `powerup-icon ${config.class}`;
-    indicatorEl.innerHTML = `
-      ${config.icon}
-      <div class="powerup-timer">${Math.ceil(config.duration)}</div>
-    `;
-    powerupIndicatorEl.appendChild(indicatorEl);
-  }
-  
-  // Powerup deaktivieren
-  function deactivatePowerup(type) {
-    if (!state.activePowerups[type]) return;
-    
-    // Spieler-Status zurücksetzen
-    switch(type) {
-      case POWERUP_TYPES.SHIELD:
-        player.hasShield = false;
-        player.invuln = 1; // Kurze Unverwundbarkeit nach Shield-Verlust
-        break;
-      case POWERUP_TYPES.SPEED_BOOST:
-        player.hasSpeedBoost = false;
-        state.baseSpeed /= 1.4; // Geschwindigkeit zurücksetzen
-        break;
-      case POWERUP_TYPES.MAGNET:
-        player.hasMagnet = false;
-        break;
-    }
-    
-    // Powerup aus aktivem Status entfernen
-    delete state.activePowerups[type];
-    
-    // UI-Element entfernen
-    const indicatorEl = document.getElementById(`powerup-${type}`);
-    if (indicatorEl) {
-      powerupIndicatorEl.removeChild(indicatorEl);
-    }
-  }
+  startBtn.addEventListener('click', (e) => { 
+    e.preventDefault(); 
+    start(); 
+  });
 
   function start() {
-    if (!state.playerName) {
-      const entered = nameInput ? nameInput.value.trim() : '';
-      state.playerName = entered || 'Gast';
-    }
-    overlay.style.display = 'none'; state.running = true; state.paused = false; reset(); lastTs = performance.now(); requestAnimationFrame(loop);
-  }
-  function gameOver() {
-    state.running = false; state.paused = false;
-    if (state.score > state.best) { state.best = state.score; localStorage.setItem('dragonfly-best', String(state.best)); }
-    bestEl.textContent = state.best;
-    overlay.innerHTML = `<div class="card">
-        <div style="text-align: center; margin-bottom: 15px;">
-          <img src="logo.png" alt="Libellen-Runner Logo" width="220" height="100" style="margin-bottom: 5px;" />
-        </div>
-        <h1>Game Over, ${state.playerName}!</h1>
-        <p>Score: <strong>${Math.floor(state.score)}</strong> · Best: <strong>${state.best}</strong></p>
-        <p><small>Tipp: kurze, rhythmische Flügelschläge geben dir mehr Kontrolle.</small></p>
-        <a href="#" class="btn" id="restart">Nochmal</a>
-        <a href="#" class="btn" id="resetGame" style="margin-left:10px;">Neustart</a>
-      </div>`;
-    overlay.style.display = 'grid';
-    overlay.querySelector('#restart').addEventListener('click', (e) => { e.preventDefault(); start(); });
-    overlay.querySelector('#resetGame').addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
+    overlay.style.display = 'none';
+    state.running = true;
+    state.currentLevel = 0;
+    state.moves = 0;
+    state.history = [];
+    loadLevel(state.currentLevel);
+    updateBestDisplay();
+    render();
   }
 
-  let lastTs = performance.now();
-  function loop(ts) {
-    if (!state.running) return; const dt = Math.min(0.033, (ts - lastTs) / 1000); lastTs = ts; if (state.paused) { requestAnimationFrame(loop); return; }
-    update(dt); render(); requestAnimationFrame(loop);
-  }
-
-  function update(dt) {
-    state.t += dt;
-    if (!state.topDown && state.score >= 400) {
-      state.topDown = true;
-      state.baseSpeed = 320;
-      state.topDownStartScore = state.score;
-      player.y = world.h * 0.5;
-      player.vy = 0;
-    }
-    const progressScore = state.topDown ? state.score - state.topDownStartScore : state.score;
-    state.speed = 1 + Math.min(1.2, Math.max(0, progressScore) / 150);
-    speedEl.textContent = `${state.speed.toFixed(1)}x`;
-    const scroll = state.baseSpeed * state.speed * dt; state.worldOffset += scroll;
-
-    if (state.topDown) {
-      const move = 360 * dt;
-      if (input.left) player.y -= move;
-      if (input.right) player.y += move;
-      const minY = 30, maxY = world.h - 30;
-      if (player.y < minY) player.y = minY;
-      if (player.y > maxY) player.y = maxY;
-      player.vy = 0;
-    } else {
-      if (justFlapped) { player.vy = player.flapVel; justFlapped = false; }
-      player.vy += player.g * dt; player.vy = Math.min(player.vy, player.maxVy); player.y += player.vy * dt;
-      const minY = 30, maxY = world.h - 30; if (player.y < minY) { player.y = minY; player.vy = 0; } if (player.y > maxY) { player.y = maxY; player.vy = 0; }
-    }
-    if (player.invuln > 0) player.invuln -= dt;
+  function loadLevel(levelIndex) {
+    if (levelIndex < 0 || levelIndex >= LEVELS.length) return;
     
-    // Powerup Timer verarbeiten
-    Object.keys(state.activePowerups).forEach(type => {
-      const powerup = state.activePowerups[type];
-      powerup.timeLeft -= dt;
-      
-      // Powerup-Anzeige aktualisieren
-      const indicatorEl = document.getElementById(`powerup-${type}`);
-      if (indicatorEl) {
-        const timerEl = indicatorEl.querySelector('.powerup-timer');
-        if (timerEl) {
-          timerEl.textContent = Math.ceil(powerup.timeLeft);
-        }
-      }
-      
-      // Powerup beenden, wenn abgelaufen
-      if (powerup.timeLeft <= 0) {
-        deactivatePowerup(type);
-      }
-    });
+    const level = LEVELS[levelIndex];
+    currentGrid = level.grid.map(row => [...row]);
     
-
-
-    // Spawn Timer
-    spawnTimer -= dt; 
-    lastObstacleTime += dt;
-    if (spawnTimer <= 0) { 
-      // Mindestens 1,2 Sekunden zwischen Hindernissen (skaliert mit Spielgeschwindigkeit)
-      if (lastObstacleTime >= 1.2 / state.speed) {
-        spawnObstacle(); 
-        lastObstacleTime = 0;
+    // Find player position
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        if (currentGrid[y][x] === TILES.PLAYER) {
+          player.x = x;
+          player.y = y;
+          currentGrid[y][x] = TILES.ROOF; // Player doesn't occupy tile
+        }
       }
-      spawnTimer = rand(1.2, 2.0) / state.speed; // Etwas längere Pausen zwischen Hindernissen
     }
-    orbTimer -= dt; if (orbTimer <= 0) { spawnOrb(); orbTimer = rand(1.5, 3.0) / state.speed; }
-    powerupTimer -= dt; if (powerupTimer <= 0) { spawnPowerup(); powerupTimer = rand(8.0, 15.0); }
+    
+    state.moves = 0;
+    state.history = [];
+    levelEl.textContent = (levelIndex + 1);
+    movesEl.textContent = state.moves;
+    updateBestDisplay();
+  }
 
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const o = obstacles[i]; o.x -= scroll;
-      
-      // Spezielle Bewegung für Vögel
-      if (o.type === 'bird') {
-        o.y = o.initY + Math.sin(state.t * o.vertSpeed / 100) * o.vertAmp;
-      }
-      
-      if (o.type === 'reed') {
-        const topH = Math.max(0, o.center - o.gap/2); const bottomY = o.center + o.gap/2;
-        const hitTop = circleRectCollision(player.x, player.y, player.r, o.x, 0, o.width, topH);
-        const hitBottom = circleRectCollision(player.x, player.y, player.r, o.x, bottomY, o.width, world.h - bottomY);
-        if ((hitTop || hitBottom) && player.invuln <= 0) {
-          if (player.hasShield) {
-            deactivatePowerup(POWERUP_TYPES.SHIELD);
-          } else {
-            return gameOver();
-          }
-        }
-        if (!o.passed && o.x + o.width < player.x) { state.score += 1; o.passed = true; }
-      } else if (o.type === 'waterLily') {
-        // Kollisionsbereich für Seerosen
-        const adjustedSize = o.size;
-        if (circleRectCollision(player.x, player.y, player.r, o.x - adjustedSize*0.8, o.y - adjustedSize*0.4, adjustedSize*1.6, adjustedSize*0.8) && player.invuln <= 0) {
-          if (player.hasShield) {
-            deactivatePowerup(POWERUP_TYPES.SHIELD);
-          } else {
-            return gameOver();
-          }
-        }
-        if (!o.passed && o.x < player.x) { state.score += 1; o.passed = true; }
-      } else if (o.type === 'bird') {
-        // Vogel-Kollision prüfen (runde Hitbox)
-        const dist = Math.hypot(player.x - o.x, player.y - o.y);
-        if (dist < player.r + o.size*0.5 && player.invuln <= 0) {
-          if (player.hasShield) {
-            deactivatePowerup(POWERUP_TYPES.SHIELD);
-          } else {
-            return gameOver();
-          }
-        }
-        if (!o.passed && o.x < player.x) { state.score += 1; o.passed = true; }
-      }
-      if (o.x < -200) obstacles.splice(i, 1);
+  function updateBestDisplay() {
+    const best = state.bestMoves[state.currentLevel];
+    bestEl.textContent = best !== undefined ? best : '-';
+  }
+
+  function saveGameState() {
+    return {
+      grid: currentGrid.map(row => [...row]),
+      playerX: player.x,
+      playerY: player.y,
+      moves: state.moves
+    };
+  }
+
+  function restoreGameState(gameState) {
+    currentGrid = gameState.grid.map(row => [...row]);
+    player.x = gameState.playerX;
+    player.y = gameState.playerY;
+    state.moves = gameState.moves;
+    movesEl.textContent = state.moves;
+  }
+
+  function undo() {
+    if (state.history.length === 0) return;
+    const prevState = state.history.pop();
+    restoreGameState(prevState);
+    render();
+  }
+
+  function resetLevel() {
+    loadLevel(state.currentLevel);
+    render();
+  }
+
+  function movePlayer(dx, dy) {
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+
+    // Check bounds
+    if (newY < 0 || newY >= currentGrid.length || 
+        newX < 0 || newX >= currentGrid[newY].length) {
+      return false;
     }
 
-    for (let i = pickUps.length - 1; i >= 0; i--) {
-      const p = pickUps[i]; 
+    const targetTile = currentGrid[newY][newX];
+
+    // Check if tile is walkable
+    if (targetTile === TILES.EMPTY || 
+        targetTile === TILES.WINDOW || 
+        targetTile === TILES.CHIMNEY) {
+      return false;
+    }
+
+    // Check if there's a panel
+    if (targetTile === TILES.PANEL || targetTile === TILES.PANEL_ON_TARGET) {
+      // Try to push the panel
+      const pushX = newX + dx;
+      const pushY = newY + dy;
+
+      // Check push bounds
+      if (pushY < 0 || pushY >= currentGrid.length || 
+          pushX < 0 || pushX >= currentGrid[pushY].length) {
+        return false;
+      }
+
+      const pushTargetTile = currentGrid[pushY][pushX];
+
+      // Check if push target is valid
+      if (pushTargetTile !== TILES.ROOF && 
+          pushTargetTile !== TILES.TARGET && 
+          pushTargetTile !== TILES.SHADOW) {
+        return false;
+      }
+
+      // Save state for undo
+      state.history.push(saveGameState());
+
+      // Move panel
+      const wasPanelOnTarget = targetTile === TILES.PANEL_ON_TARGET;
       
-      // Magnet zieht Orbs an
-      if (player.hasMagnet) {
-        const dx = player.x - p.x;
-        const dy = player.y - p.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 200) {  // Magnet-Reichweite
-          const pullSpeed = 400;  // Anziehungsgeschwindigkeit
-          const moveX = (dx / dist) * pullSpeed * dt;
-          const moveY = (dy / dist) * pullSpeed * dt;
-          p.x += moveX;
-          p.y += moveY;
-        } else {
-          p.x -= scroll * 1.05;
-        }
+      // Remove panel from current position
+      if (wasPanelOnTarget) {
+        currentGrid[newY][newX] = TILES.TARGET;
       } else {
-        p.x -= scroll * 1.05;
+        // Check if there was a target under the panel
+        const originalTile = LEVELS[state.currentLevel].grid[newY][newX];
+        currentGrid[newY][newX] = (originalTile === TILES.TARGET) ? TILES.TARGET : TILES.ROOF;
       }
-      
-      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) {
-        const basePoints = p.value;
-        const points = player.hasSpeedBoost ? basePoints * 2 : basePoints;
-        state.score += points;
-        player.invuln = 0.6;
-        pickUps.splice(i, 1);
-        continue;
+
+      // Place panel at new position
+      if (pushTargetTile === TILES.TARGET) {
+        currentGrid[pushY][pushX] = TILES.PANEL_ON_TARGET;
+      } else {
+        currentGrid[pushY][pushX] = TILES.PANEL;
       }
-      if (p.x < -40) pickUps.splice(i, 1);
+
+      // Move player
+      player.x = newX;
+      player.y = newY;
+      state.moves++;
+      movesEl.textContent = state.moves;
+
+      return true;
     }
-    
-    // Powerups prüfen
-    for (let i = powerups.length - 1; i >= 0; i--) {
-      const p = powerups[i];
-      p.x -= scroll * 1.05;
-      
-      if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) {
-        activatePowerup(p.type);
-        powerups.splice(i, 1);
-        continue;
+
+    // Normal move
+    state.history.push(saveGameState());
+    player.x = newX;
+    player.y = newY;
+    state.moves++;
+    movesEl.textContent = state.moves;
+
+    return true;
+  }
+
+  function checkWin() {
+    // Check if all panels are on targets
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        if (currentGrid[y][x] === TILES.PANEL) {
+          return; // Still panels not on targets
+        }
       }
-      
-      if (p.x < -40) powerups.splice(i, 1);
     }
-    
-    scoreEl.textContent = Math.floor(state.score);
+
+    // Level complete!
+    const currentBest = state.bestMoves[state.currentLevel];
+    if (currentBest === undefined || state.moves < currentBest) {
+      state.bestMoves[state.currentLevel] = state.moves;
+      try {
+        localStorage.setItem('solar-best-moves', JSON.stringify(state.bestMoves));
+      } catch(e) {}
+    }
+
+    if (state.currentLevel < LEVELS.length - 1) {
+      // Next level
+      setTimeout(() => {
+        showLevelComplete();
+      }, 300);
+    } else {
+      // Game complete!
+      setTimeout(() => {
+        showGameComplete();
+      }, 300);
+    }
+  }
+
+  function showLevelComplete() {
+    const level = LEVELS[state.currentLevel];
+    overlay.innerHTML = `<div class="card">
+      <h1>🎉 Level ${state.currentLevel + 1} geschafft!</h1>
+      <p><strong>${level.name}</strong></p>
+      <p>Züge: <strong>${state.moves}</strong></p>
+      <button class="btn" id="nextLevel">Nächstes Level</button>
+      <button class="btn btn-secondary" id="retryLevel">Nochmal versuchen</button>
+    </div>`;
+    overlay.style.display = 'grid';
+
+    document.getElementById('nextLevel').addEventListener('click', () => {
+      state.currentLevel++;
+      loadLevel(state.currentLevel);
+      overlay.style.display = 'none';
+      render();
+    });
+
+    document.getElementById('retryLevel').addEventListener('click', () => {
+      resetLevel();
+      overlay.style.display = 'none';
+      render();
+    });
+  }
+
+  function showGameComplete() {
+    const totalMoves = Object.values(state.bestMoves).reduce((a, b) => a + b, 0);
+    overlay.innerHTML = `<div class="card">
+      <h1>🏆 Alle Levels geschafft!</h1>
+      <p>Herzlichen Glückwunsch! Du hast alle Solar-Panels erfolgreich platziert!</p>
+      <p>Gesamtzüge (Beste): <strong>${totalMoves}</strong></p>
+      <button class="btn" id="playAgain">Nochmal spielen</button>
+    </div>`;
+    overlay.style.display = 'grid';
+
+    document.getElementById('playAgain').addEventListener('click', () => {
+      start();
+    });
   }
 
   function render() {
-    ctx.clearRect(0,0,world.w,world.h);
-    ctx.save();
+    const w = canvas.width;
+    const h = canvas.height;
 
-    if (state.topDown) {
-      ctx.translate(world.w / 2, world.h / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.translate(-world.w / 2, -world.h / 2);
+    ctx.clearRect(0, 0, w, h);
+
+    // Calculate grid dimensions and centering
+    const rows = currentGrid.length;
+    const cols = Math.max(...currentGrid.map(row => row.length));
+    const cellSize = Math.min(
+      Math.floor((w * 0.8) / cols),
+      Math.floor((h * 0.8) / rows)
+    );
+
+    const gridWidth = cols * cellSize;
+    const gridHeight = rows * cellSize;
+    const offsetX = (w - gridWidth) / 2;
+    const offsetY = (h - gridHeight) / 2;
+
+    // Draw sky/background
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, '#87ceeb');
+    gradient.addColorStop(1, '#e0f6ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw clouds
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    for (let i = 0; i < 5; i++) {
+      const x = (i * w / 4 + Date.now() / 5000) % (w + 100) - 50;
+      const y = 50 + i * 40;
+      drawCloud(x, y, 1);
     }
 
-    drawBackground();
+    // Draw grid
+    for (let y = 0; y < currentGrid.length; y++) {
+      for (let x = 0; x < currentGrid[y].length; x++) {
+        const tile = currentGrid[y][x];
+        const px = offsetX + x * cellSize;
+        const py = offsetY + y * cellSize;
 
-    const t = state.t;
-    
-    // Hindernisse zeichnen
-    for (const o of obstacles) {
-      if (o.type === 'reed') {
-        if (state.topDown) {
-          drawDragonflyBarrier(o);
-        } else if (state.score < 150) {
-          ctx.fillStyle = '#2e7d32';
-          ctx.fillRect(o.x, 0, o.width, Math.max(0, o.center - o.gap/2));
-          ctx.fillStyle = '#4caf50';
-          ctx.fillRect(o.x, Math.max(0, o.center - o.gap/2) - 10, o.width, 10);
-          const bottomY = o.center + o.gap/2;
-          ctx.fillStyle = '#2e7d32';
-          ctx.fillRect(o.x, bottomY, o.width, world.h - bottomY);
-          ctx.fillStyle = '#4caf50';
-          ctx.fillRect(o.x, bottomY, o.width, 10);
-        } else if (state.score < 250) {
-          drawCityBarrier(o);
-        } else {
-          drawDesertSign(o);
-        }
-      } else if (o.type === 'waterLily') {
-        drawWaterLily(o.x, o.y, o.size);
-      } else if (o.type === 'bird') {
-        drawBird(o.x, o.y, o.size, t);
+        drawTile(tile, px, py, cellSize, x, y);
       }
     }
-    
-    // Orbs zeichnen
-    for (const p of pickUps) drawOrb(p, t);
-    
-    // Powerups zeichnen
-    for (const p of powerups) drawPowerup(p, t);
 
-    // Spieler (blink when invulnerable)
-    if (player.invuln > 0) {
-      if (((t * 20) | 0) % 2 === 0) {
-        state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
-      }
-    }
-    else {
-      state.topDown ? drawDragonflyTop(player, t) : drawDragonfly(player, t);
-    }
-    
-    // Shield-Effekt um Spieler zeichnen, wenn aktiv
-    if (player.hasShield) {
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      const pulseSize = 1 + Math.sin(t * 5) * 0.1;
-      ctx.scale(pulseSize, pulseSize);
-      
-      ctx.beginPath();
-      ctx.arc(0, 0, player.r + 8, 0, Math.PI*2);
-      
-      const gradient = ctx.createRadialGradient(0, 0, player.r, 0, 0, player.r + 8);
-      gradient.addColorStop(0, 'rgba(127, 209, 255, 0.0)');
-      gradient.addColorStop(0.7, 'rgba(127, 209, 255, 0.3)');
-      gradient.addColorStop(1, 'rgba(127, 209, 255, 0.7)');
-      
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      
-      ctx.strokeStyle = 'rgba(127, 209, 255, 0.9)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      ctx.restore();
-    }
-    
-    // Speed-Boost Effekt
-    if (player.hasSpeedBoost) {
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      
-      // Trail hinter der Libelle
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const alpha = 0.7 - i * 0.08;
-        const size = player.r - i * 1.5;
-        const offset = i * 14;
-        
-        ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
-        ctx.beginPath();
-        ctx.arc(-offset, 0, size, 0, Math.PI*2);
-        ctx.fill();
-      }
-      
-      ctx.restore();
-    }
-
-    // Shadow
-    const minY = 30, maxY = world.h - 30;
-    const altitudeFactor = (player.y - minY) / (maxY - minY);
-    const shadowScale = 0.5 + altitudeFactor * (1.5 - 0.5);
-
-    const baseShadowY = world.h * world.riverY + 120;
-    const basePlayerY = world.h * 0.5;
-    const maxShadowY = world.h - 10;
-    let shadowY = baseShadowY;
-    if (player.y > basePlayerY) {
-      const downFactor = (player.y - basePlayerY) / (maxY - basePlayerY);
-      shadowY = baseShadowY + downFactor * (maxShadowY - baseShadowY);
-    }
-
-    ctx.save();
-    ctx.globalAlpha = 0.20;
-    ctx.fillStyle = '#001b2b';
-    ctx.beginPath();
-    ctx.ellipse(player.x + 6, shadowY, 28 * shadowScale, 6 * shadowScale, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-    ctx.restore();
+    // Draw player
+    const px = offsetX + player.x * cellSize;
+    const py = offsetY + player.y * cellSize;
+    drawPlayer(px, py, cellSize);
   }
-  
-  function drawCloud(x, y, size, opacity) {
+
+  function drawCloud(x, y, scale) {
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(size, size);
-    
-    // Weichere Wolkenfarbe mit anpassbarer Transparenz
-    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-    
-    // Hauptkörper der Wolke (mehrere überlappende Kreise für eine weichere Form)
+    ctx.scale(scale, scale);
     ctx.beginPath();
-    ctx.arc(0, 0, 30, 0, Math.PI * 2);
-    ctx.arc(25, -10, 25, 0, Math.PI * 2);
-    ctx.arc(45, 0, 20, 0, Math.PI * 2);
-    ctx.arc(65, -5, 15, 0, Math.PI * 2);
-    ctx.arc(10, 10, 28, 0, Math.PI * 2);
-    ctx.arc(35, 15, 22, 0, Math.PI * 2);
-    ctx.arc(55, 10, 18, 0, Math.PI * 2);
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.arc(15, -5, 15, 0, Math.PI * 2);
+    ctx.arc(30, 0, 12, 0, Math.PI * 2);
     ctx.fill();
-    
     ctx.restore();
   }
+
+  function drawTile(tile, x, y, size, gridX, gridY) {
+    const padding = 2;
+
+    switch(tile) {
+      case TILES.EMPTY:
+        // Nothing
+        break;
+
+      case TILES.ROOF:
+        // Roof tile - terracotta/red
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Add some texture
+        ctx.strokeStyle = '#8b4513';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        break;
+
+      case TILES.WINDOW:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Window
+        ctx.fillStyle = '#4a90e2';
+        const windowSize = size * 0.6;
+        const windowOffset = size * 0.2;
+        ctx.fillRect(x + windowOffset, y + windowOffset, windowSize, windowSize);
+        
+        // Window frame
+        ctx.strokeStyle = '#2c5aa0';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + windowOffset, y + windowOffset, windowSize, windowSize);
+        ctx.beginPath();
+        ctx.moveTo(x + size / 2, y + windowOffset);
+        ctx.lineTo(x + size / 2, y + windowOffset + windowSize);
+        ctx.moveTo(x + windowOffset, y + size / 2);
+        ctx.lineTo(x + windowOffset + windowSize, y + size / 2);
+        ctx.stroke();
+        
+        // Shine effect
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(x + windowOffset, y + windowOffset, windowSize / 2, windowSize / 2);
+        break;
+
+      case TILES.CHIMNEY:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Chimney
+        ctx.fillStyle = '#8b4513';
+        const chimneyWidth = size * 0.5;
+        const chimneyHeight = size * 0.7;
+        const chimneyX = x + (size - chimneyWidth) / 2;
+        const chimneyY = y + (size - chimneyHeight) / 2;
+        ctx.fillRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight);
+        
+        // Chimney top
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(chimneyX - 3, chimneyY, chimneyWidth + 6, 6);
+        
+        // Bricks
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.strokeRect(chimneyX, chimneyY + 8 + i * 10, chimneyWidth / 2, 8);
+          ctx.strokeRect(chimneyX + chimneyWidth / 2, chimneyY + 8 + i * 10, chimneyWidth / 2, 8);
+        }
+        break;
+
+      case TILES.SHADOW:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Shadow overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Diagonal lines to indicate shadow
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(x + i * size / 4, y + padding);
+          ctx.lineTo(x + padding, y + i * size / 4);
+          ctx.stroke();
+        }
+        break;
+
+      case TILES.TARGET:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Target marker - glowing circle
+        const targetSize = size * 0.5;
+        const targetX = x + size / 2;
+        const targetY = y + size / 2;
+        
+        // Glow
+        const gradient = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, targetSize);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, targetSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Target circle
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, targetSize * 0.6, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner dot
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case TILES.PANEL:
+      case TILES.PANEL_ON_TARGET:
+        // Roof tile base
+        ctx.fillStyle = '#cd5c5c';
+        ctx.fillRect(x + padding, y + padding, size - padding * 2, size - padding * 2);
+        
+        // Draw target if panel is on target
+        if (tile === TILES.PANEL_ON_TARGET) {
+          const targetSize = size * 0.5;
+          const targetX = x + size / 2;
+          const targetY = y + size / 2;
+          
+          // Glow
+          const gradient = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, targetSize);
+          gradient.addColorStop(0, 'rgba(50, 255, 50, 0.5)');
+          gradient.addColorStop(1, 'rgba(50, 255, 50, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, targetSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Solar panel
+        const panelPadding = size * 0.15;
+        ctx.fillStyle = tile === TILES.PANEL_ON_TARGET ? '#2a5a3c' : '#1a3d5c';
+        ctx.fillRect(x + panelPadding, y + panelPadding, 
+                     size - panelPadding * 2, size - panelPadding * 2);
+        
+        // Panel grid
+        ctx.strokeStyle = '#0d1f2d';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + panelPadding, y + panelPadding, 
+                       size - panelPadding * 2, size - panelPadding * 2);
+        
+        // Grid lines
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 3; i++) {
+          const pos = panelPadding + (size - panelPadding * 2) * (i / 3);
+          ctx.beginPath();
+          ctx.moveTo(x + pos, y + panelPadding);
+          ctx.lineTo(x + pos, y + size - panelPadding);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(x + panelPadding, y + pos);
+          ctx.lineTo(x + size - panelPadding, y + pos);
+          ctx.stroke();
+        }
+        
+        // Shine effect
+        ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
+        ctx.fillRect(x + panelPadding, y + panelPadding, 
+                     (size - panelPadding * 2) / 2, (size - panelPadding * 2) / 2);
+        break;
+    }
+  }
+
+  function drawPlayer(x, y, size) {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const playerSize = size * 0.35;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + playerSize * 0.8, playerSize * 0.6, playerSize * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, playerSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outline
+    ctx.strokeStyle = '#e65100';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Hard hat
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - playerSize * 0.3, playerSize * 0.6, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#fbc02d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Face
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(centerX - playerSize * 0.3, centerY - playerSize * 0.1, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + playerSize * 0.3, centerY - playerSize * 0.1, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY + playerSize * 0.1, playerSize * 0.3, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+  }
+
+  // Initial render
+  render();
 })();
 </script>
 </body>
